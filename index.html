@@ -7,22 +7,19 @@
 <meta name="theme-color" content="#2F7D5B">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥗%3C/text%3E%3C/svg%3E">
 
-<!-- Police : Bricolage Grotesque (titres) + Figtree (texte). Repli sur les polices système si indisponibles. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Applique le thème sombre AVANT le premier affichage pour éviter un flash blanc -->
 <script>
   try {
     const t = localStorage.getItem('mealprep.theme');
     if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
     }
-  } catch (e) { /* stockage indisponible : on garde le thème clair */ }
+  } catch (e) {}
 </script>
 
-<!-- Tailwind CSS via CDN (version figée) -->
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script>
   tailwind.config = {
@@ -34,7 +31,6 @@
           display: ['"Bricolage Grotesque"', 'Figtree', 'system-ui', 'sans-serif']
         },
         colors: {
-          // Palette : vert « feuille » + fonds craie / encre, sans crème ni terracotta
           leaf: { 50: '#EEF6F1', 100: '#D8EBDF', 200: '#B3D7C1', 400: '#4F9F7A', 500: '#2F7D5B', 600: '#256649', 700: '#1C503A' },
           chalk: '#F5F7F4',
           ink: { 800: '#16241F', 900: '#101B17', 950: '#0B1310' }
@@ -48,16 +44,13 @@
   html { -webkit-tap-highlight-color: transparent; }
   body { font-family: Figtree, system-ui, sans-serif; }
   .font-display { letter-spacing: -0.01em; }
-  /* Zone de dépôt survolée pendant un glisser-déposer */
   .drop-hover { outline: 2px solid #2F7D5B; outline-offset: -2px; background-color: rgba(47,125,91,.10) !important; }
   [draggable="true"] { -webkit-user-drag: element; }
-  /* Marge de sécurité pour les téléphones à encoche */
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
   details > summary { list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
   details[open] .chev { transform: rotate(180deg); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-  /* Apparition du toast (réponse à une action de l'utilisateur) */
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .toast-in { animation: toast-in .18s ease-out; }
 </style>
@@ -72,15 +65,11 @@
 (() => {
   'use strict';
 
-  /* ==========================================================================
-     1. CONSTANTES
-     ========================================================================== */
-  const STORAGE_KEY = 'mealprep.v1';
+  const STORAGE_KEY = 'mealprep.v2';
   const THEME_KEY = 'mealprep.theme';
 
   const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-  // Les 4 catégories de repas = les 4 créneaux de chaque journée
   const SLOTS = [
     { id: 'breakfast', label: 'Petit-déjeuner',                short: 'Petit-déjeuner', icon: '☀️' },
     { id: 'lunch',     label: 'Déjeuner',                      short: 'Déjeuner',       icon: '🥗' },
@@ -90,7 +79,6 @@
   const SLOT_IDS = SLOTS.map(s => s.id);
   const slotById = id => SLOTS.find(s => s.id === id) || SLOTS[0];
 
-  // Couleurs par catégorie (classes Tailwind complètes, clair + sombre)
   const TONE = {
     breakfast: { dot: 'bg-amber-400',  chip: 'bg-amber-100 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200',   box: 'border-amber-200 bg-amber-50/70 dark:border-amber-400/25 dark:bg-amber-400/5' },
     lunch:     { dot: 'bg-leaf-400',   chip: 'bg-leaf-100 text-leaf-700 dark:bg-leaf-400/15 dark:text-leaf-200',       box: 'border-leaf-200 bg-leaf-50/70 dark:border-leaf-400/25 dark:bg-leaf-400/5' },
@@ -98,16 +86,11 @@
     night:     { dot: 'bg-violet-400', chip: 'bg-violet-100 text-violet-900 dark:bg-violet-400/15 dark:text-violet-200', box: 'border-violet-200 bg-violet-50/70 dark:border-violet-400/25 dark:bg-violet-400/5' }
   };
 
-  // Rayons de la liste de courses (dans l'ordre d'un parcours en magasin)
   const AISLES = ['Fruits & Légumes', 'Boulangerie', 'Viandes & Poissons', 'Frais', 'Épicerie', 'Surgelés', 'Autre'];
   const AISLE_ICON = { 'Fruits & Légumes': '🥕', 'Boulangerie': '🥖', 'Viandes & Poissons': '🥩', 'Frais': '🧀', 'Épicerie': '🥫', 'Surgelés': '🧊', 'Autre': '🛍️' };
   const UNITS = ['g', 'kg', 'ml', 'cl', 'l', 'pièce', 'c. à soupe', 'c. à café', 'tranche', 'gousse', 'boîte', 'sachet'];
   const UNIT_PLURAL = { 'pièce': 'pièces', 'tranche': 'tranches', 'gousse': 'gousses', 'boîte': 'boîtes', 'sachet': 'sachets' };
 
-  /* ==========================================================================
-     2. RECETTES INTÉGRÉES (quantités pour 1 portion)
-     Format d'un ingrédient : [nom, quantité, unité, rayon]
-     ========================================================================== */
   const FV = 'Fruits & Légumes', VP = 'Viandes & Poissons', FR = 'Frais', BO = 'Boulangerie', EP = 'Épicerie', SU = 'Surgelés';
   const R = (id, title, cat, ings) => ({
     id, title, cat, builtin: true,
@@ -115,1052 +98,163 @@
   });
 
   const DEFAULT_RECIPES = [
-    /* ---- Petit-déjeuner ---- */
-    R('b1', 'Porridge banane-cannelle', 'breakfast', [
-      ["Flocons d'avoine", 50, 'g', EP], ['Lait demi-écrémé', 250, 'ml', FR], ['Banane', 1, 'pièce', FV],
-      ['Cannelle', 1, 'c. à café', EP], ['Miel', 1, 'c. à café', EP]
+    /* ---- PARTIE 1 : 20 PETITS-DÉJEUNERS ---- */
+    R('b1', 'Bol Petits-Suisses, Avoine & Cacahuète', 'breakfast', [
+      ['Petits-suisses', 200, 'g', FR], ["Flocons d'avoine", 70, 'g', EP], ['Beurre de cacahuète', 15, 'g', EP], ['Banane', 1, 'pièce', FV]
     ]),
-    R('b2', 'Skyr, fruits rouges et granola', 'breakfast', [
-      ['Skyr nature', 150, 'g', FR], ['Fruits rouges surgelés', 100, 'g', SU], ['Granola', 30, 'g', EP], ['Miel', 1, 'c. à café', EP]
+    R('b2', 'Baked Oats Choco Air Fryer', 'breakfast', [
+      ["Flocons d'avoine", 60, 'g', EP], ['Compote de pommes', 100, 'g', EP], ['Œuf battu', 1, 'pièce', FR], ['Whey choco', 25, 'g', EP], ['Levure chimique', 2, 'g', EP], ['Chocolat noir', 15, 'g', EP]
     ]),
-    R('b3', 'Omelette fromage-épinards', 'breakfast', [
-      ['Œufs', 3, 'pièce', FR], ['Épinards frais', 50, 'g', FV], ['Fromage râpé', 30, 'g', FR],
-      ['Beurre', 5, 'g', FR], ['Pain complet', 2, 'tranche', BO]
+    R('b3', 'Gâteau Semoule Pomme-Caramel Micro-ondes', 'breakfast', [
+      ['Semoule', 55, 'g', EP], ['Lait', 220, 'ml', FR], ['Pomme', 1, 'pièce', FV], ['Cannelle', 1, 'c. à café', EP], ['Whey vanille', 30, 'g', EP], ['Caramel', 1, 'c. à café', EP]
     ]),
-    R('b4', 'Tartines avocat-œuf', 'breakfast', [
-      ['Pain complet', 2, 'tranche', BO], ['Avocat', 0.5, 'pièce', FV], ['Œufs', 2, 'pièce', FR], ['Citron jaune', 0.25, 'pièce', FV]
+    R('b4', 'Croque Gratiné Jambon-Mozza Air Fryer', 'breakfast', [
+      ['Pain de mie complet', 3, 'tranche', BO], ['Jambon blanc', 3, 'tranche', VP], ['St Môret', 30, 'g', FR], ['Mozzarella', 50, 'g', FR], ['Kiwi', 1, 'pièce', FV]
     ]),
-    R('b5', 'Overnight oats cacao-banane', 'breakfast', [
-      ["Flocons d'avoine", 50, 'g', EP], ['Lait demi-écrémé', 150, 'ml', FR], ['Yaourt nature', 100, 'g', FR],
-      ['Cacao en poudre', 1, 'c. à soupe', EP], ['Graines de chia', 1, 'c. à soupe', EP], ['Banane', 1, 'pièce', FV]
+    R('b5', 'Overnight Porridge Tiramisu', 'breakfast', [
+      ["Flocons d'avoine", 70, 'g', EP], ['Skyr', 200, 'g', FR], ['Whey vanille', 15, 'g', EP], ['Café', 50, 'ml', EP], ['Cacao en poudre', 5, 'g', EP], ['Amandes', 15, 'g', EP]
     ]),
-
-    /* ---- Déjeuner ---- */
-    R('l1', 'Bowl poulet, riz et brocoli', 'lunch', [
-      ['Blanc de poulet', 150, 'g', VP], ['Riz basmati', 80, 'g', EP], ['Brocoli', 150, 'g', FV],
-      ['Sauce soja', 1, 'c. à soupe', EP], ["Huile d'olive", 1, 'c. à soupe', EP]
+    R('b6', 'Brioche Perdue Fruits Rouges Air Fryer', 'breakfast', [
+      ['Pain de mie complet', 3, 'tranche', BO], ['Œuf battu', 1, 'pièce', FR], ['Lait', 80, 'ml', FR], ['Whey vanille', 20, 'g', EP], ['Cannelle', 1, 'c. à café', EP], ['Skyr', 100, 'g', FR], ['Fruits rouges', 80, 'g', SU]
     ]),
-    R('l2', 'Salade de quinoa, pois chiches et feta', 'lunch', [
-      ['Quinoa', 70, 'g', EP], ['Pois chiches', 0.5, 'boîte', EP], ['Concombre', 0.5, 'pièce', FV],
-      ['Tomates', 2, 'pièce', FV], ['Feta', 50, 'g', FR], ["Huile d'olive", 1, 'c. à soupe', EP]
+    R('b7', 'Wrap Chaud Banane-Choco-Cacahuète Air Fryer', 'breakfast', [
+      ['Wraps (tortillas)', 1, 'pièce', BO], ['Beurre de cacahuète', 15, 'g', EP], ['Banane', 1, 'pièce', FV], ['Chocolat noir', 10, 'g', EP], ['Skyr', 100, 'g', FR]
     ]),
-    R('l3', 'Wrap thon et crudités', 'lunch', [
-      ['Wraps (tortillas)', 2, 'pièce', BO], ['Thon au naturel', 1, 'boîte', EP], ['Laitue', 40, 'g', FV],
-      ['Tomates', 1, 'pièce', FV], ['Fromage frais', 30, 'g', FR]
+    R('b8', 'Bowl Cheesecake Spéculoos', 'breakfast', [
+      ['Fromage blanc', 200, 'g', FR], ['Carré frais 0%', 100, 'g', FR], ['Whey vanille', 25, 'g', EP], ['Fruits rouges', 80, 'g', SU], ["Flocons d'avoine", 30, 'g', EP], ['Spéculoos', 15, 'g', EP]
     ]),
-    R('l4', 'Chili con carne', 'lunch', [
-      ['Bœuf haché 5 %', 150, 'g', VP], ['Haricots rouges', 0.5, 'boîte', EP], ['Tomates concassées', 200, 'g', EP],
-      ['Oignon', 0.5, 'pièce', FV], ['Poivron rouge', 0.5, 'pièce', FV], ['Riz basmati', 70, 'g', EP], ['Paprika', 1, 'c. à café', EP]
+    R('b9', 'Flan Pâtissier Vanille Air Fryer', 'breakfast', [
+      ['Maïzena', 40, 'g', EP], ["Farine d'avoine", 30, 'g', EP], ['Lait', 250, 'ml', FR], ['Œuf battu', 1, 'pièce', FR], ['Whey vanille', 25, 'g', EP]
     ]),
-    R('l5', 'Dahl de lentilles corail et carottes', 'lunch', [
-      ['Lentilles corail', 80, 'g', EP], ['Carottes', 2, 'pièce', FV], ['Oignon', 0.5, 'pièce', FV],
-      ['Lait de coco', 100, 'ml', EP], ['Curry en poudre', 1, 'c. à café', EP]
+    R('b10', 'Bagel Dinde & Comté Air Fryer', 'breakfast', [
+      ['Bagel', 1, 'pièce', BO], ['St Môret', 40, 'g', FR], ['Dinde', 3, 'tranche', VP], ['Comté', 30, 'g', FR], ['Pomme', 1, 'pièce', FV]
     ]),
-
-    /* ---- Dîner ---- */
-    R('d1', 'Saumon, patate douce et haricots verts', 'dinner', [
-      ['Pavé de saumon', 150, 'g', VP], ['Patate douce', 200, 'g', FV], ['Haricots verts', 150, 'g', FV],
-      ["Huile d'olive", 1, 'c. à soupe', EP], ['Citron jaune', 0.25, 'pièce', FV]
+    R('b11', 'Porridge Snickers Micro-ondes', 'breakfast', [
+      ["Flocons d'avoine", 70, 'g', EP], ['Lait', 200, 'ml', FR], ['Whey choco', 30, 'g', EP], ['Beurre de cacahuète', 15, 'g', EP], ['Cacahuètes', 10, 'g', EP]
     ]),
-    R('d2', 'Pâtes complètes à la bolognaise', 'dinner', [
-      ['Pâtes complètes', 90, 'g', EP], ['Bœuf haché 5 %', 120, 'g', VP], ['Tomates concassées', 200, 'g', EP],
-      ['Oignon', 0.5, 'pièce', FV], ['Carottes', 1, 'pièce', FV], ['Ail', 1, 'gousse', FV]
+    R('b12', 'Pancakes Banane-Avoine Blender', 'breakfast', [
+      ["Flocons d'avoine", 70, 'g', EP], ['Banane', 1, 'pièce', FV], ['Œuf battu', 1, 'pièce', FR], ['Whey vanille', 20, 'g', EP], ['Lait', 50, 'ml', FR], ['Miel', 10, 'g', EP]
     ]),
-    R('d3', 'Curry de pois chiches et épinards', 'dinner', [
-      ['Pois chiches', 1, 'boîte', EP], ['Épinards frais', 100, 'g', FV], ['Lait de coco', 150, 'ml', EP],
-      ['Oignon', 1, 'pièce', FV], ['Ail', 2, 'gousse', FV], ['Curry en poudre', 1, 'c. à soupe', EP], ['Riz basmati', 70, 'g', EP]
+    R('b13', 'Crumble Pomme-Amandes Air Fryer', 'breakfast', [
+      ['Pomme', 1, 'pièce', FV], ['Cannelle', 1, 'c. à café', EP], ["Flocons d'avoine", 60, 'g', EP], ["Purée d'amandes", 15, 'g', EP], ['Miel', 10, 'g', EP], ['Skyr', 100, 'g', FR]
     ]),
-    R('d4', 'Cuisses de poulet et légumes rôtis', 'dinner', [
-      ['Cuisses de poulet', 2, 'pièce', VP], ['Pommes de terre', 250, 'g', FV], ['Carottes', 2, 'pièce', FV],
-      ['Courgette', 1, 'pièce', FV], ["Huile d'olive", 1, 'c. à soupe', EP], ['Herbes de Provence', 1, 'c. à café', EP]
+    R('b14', 'Riz au Lait Protéiné', 'breakfast', [
+      ['Riz rond', 60, 'g', EP], ['Lait', 250, 'ml', FR], ['Petits-suisses', 150, 'g', FR], ['Whey vanille', 20, 'g', EP], ['Caramel', 1, 'c. à café', EP]
     ]),
-    R('d5', 'Soupe de légumes et tartines de chèvre', 'dinner', [
-      ['Carottes', 2, 'pièce', FV], ['Poireau', 1, 'pièce', FV], ['Pommes de terre', 150, 'g', FV],
-      ['Bouillon de légumes (cube)', 1, 'pièce', EP], ['Pain complet', 2, 'tranche', BO], ['Fromage de chèvre', 40, 'g', FR]
+    R('b15', 'Wrap Salé Bacon, Chèvre & Miel Air Fryer', 'breakfast', [
+      ['Wraps (tortillas)', 1, 'pièce', BO], ['Bacon maigre', 80, 'g', VP], ['Fromage de chèvre', 40, 'g', FR], ['Miel', 1, 'c. à café', EP], ['Skyr', 100, 'g', FR]
+    ]),
+    R('b16', 'Moelleux Courgette Invisible Air Fryer', 'breakfast', [
+      ["Farine d'avoine", 55, 'g', EP], ['Courgette (mixée lisse)', 80, 'g', FV], ['Œuf battu', 1, 'pièce', FR], ['Whey choco', 30, 'g', EP], ['Cacao en poudre', 5, 'g', EP], ['Chocolat noir', 15, 'g', EP]
+    ]),
+    R('b17', 'Granola Minute Air Fryer & Agrumes', 'breakfast', [
+      ["Flocons d'avoine", 65, 'g', EP], ['Amandes', 15, 'g', EP], ['Miel', 10, 'g', EP], ['Petits-suisses', 250, 'g', FR], ['Clémentines', 2, 'pièce', FV]
+    ]),
+    R('b18', 'Muffins Salés Jambon-Comté Air Fryer', 'breakfast', [
+      ["Flocons d'avoine (mixés)", 60, 'g', EP], ['Œuf battu', 1, 'pièce', FR], ['Fromage blanc', 100, 'g', FR], ['Levure chimique', 2, 'g', EP], ['Jambon blanc', 80, 'g', VP], ['Comté', 35, 'g', FR]
+    ]),
+    R('b19', 'Chia-Pudding Choco-Banane', 'breakfast', [
+      ["Flocons d'avoine", 50, 'g', EP], ['Graines de chia', 15, 'g', EP], ['Lait', 220, 'ml', FR], ['Whey choco', 30, 'g', EP], ['Banane', 1, 'pièce', FV], ["Purée de noisette", 10, 'g', EP]
+    ]),
+    R('b20', 'Tartines Ricotta-Miel-Noix & Shaker', 'breakfast', [
+      ['Pain complet', 3, 'tranche', BO], ['Ricotta', 60, 'g', FR], ['Noix', 15, 'g', EP], ['Miel', 1, 'c. à café', EP], ['Whey', 30, 'g', EP]
     ]),
 
-    /* ---- Collations faim dans la nuit ---- */
-    R('n1', 'Yaourt grec, miel et noix', 'night', [
-      ['Yaourt grec', 150, 'g', FR], ['Miel', 1, 'c. à café', EP], ['Noix', 15, 'g', EP]
+    /* ---- PARTIE 2 : 20 REPAS DU MIDI (Meal Prep) ---- */
+    R('l1', 'Poulet Cornflakes, Grenailles & Haricots Verts', 'lunch', [
+      ['Blanc de poulet', 160, 'g', VP], ['Cornflakes (pour panure)', 30, 'g', EP], ['Pommes de terre grenailles', 250, 'g', FV], ['Haricots verts', 150, 'g', FV]
     ]),
-    R('n2', 'Toast beurre de cacahuète et banane', 'night', [
-      ['Pain complet', 1, 'tranche', BO], ['Beurre de cacahuète', 1, 'c. à soupe', EP], ['Banane', 0.5, 'pièce', FV]
+    R('l2', 'Bœuf Teriyaki, Riz & Carottes Miel', 'lunch', [
+      ['Bœuf haché 5 %', 150, 'g', VP], ['Riz basmati', 85, 'g', EP], ['Carottes', 150, 'g', FV], ['Sauce soja', 1, 'c. à soupe', EP], ['Miel', 1, 'c. à café', EP], ['Maïzena', 5, 'g', EP]
     ]),
-    R('n3', 'Fromage blanc, pomme et amandes', 'night', [
-      ['Fromage blanc', 150, 'g', FR], ['Pomme', 1, 'pièce', FV], ['Amandes', 10, 'g', EP]
+    R('l3', 'Gnocchis Rôtis, Filet Mignon & Sauce Tomate-Courgette', 'lunch', [
+      ['Gnocchis', 200, 'g', EP], ['Filet mignon de porc', 160, 'g', VP], ['Courgette (mixée lisse)', 50, 'g', FV], ['Coulis de tomate (passata)', 100, 'g', EP], ['St Môret', 30, 'g', FR], ['Mozzarella', 30, 'g', FR]
     ]),
-    R('n4', 'Œufs durs et galettes de riz', 'night', [
-      ['Œufs', 2, 'pièce', FR], ['Galettes de riz', 2, 'pièce', EP]
+    R('l4', 'Burrito Bowl Fumé sans Cumin', 'lunch', [
+      ['Blanc de poulet', 160, 'g', VP], ['Riz basmati', 75, 'g', EP], ['Maïs', 70, 'g', EP], ['Haricots rouges', 70, 'g', EP], ['Cheddar râpé', 30, 'g', FR], ['Skyr', 50, 'g', FR], ['Paprika fumé', 1, 'c. à café', EP]
     ]),
-    R('n5', 'Houmous et bâtonnets de légumes', 'night', [
-      ['Houmous', 60, 'g', FR], ['Carottes', 1, 'pièce', FV], ['Concombre', 0.25, 'pièce', FV]
-    ])
-  ];
-
-  /* ==========================================================================
-     3. ÉTAT + PERSISTANCE (localStorage)
-     ========================================================================== */
-  const clone = o => JSON.parse(JSON.stringify(o));
-
-  function defaultState() {
-    return { recipes: clone(DEFAULT_RECIPES), plan: {}, checked: {} };
-  }
-
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        return {
-          recipes: Array.isArray(s.recipes) && s.recipes.length ? s.recipes : clone(DEFAULT_RECIPES),
-          plan: s.plan && typeof s.plan === 'object' ? s.plan : {},
-          checked: s.checked && typeof s.checked === 'object' ? s.checked : {}
-        };
-      }
-    } catch (e) { /* données corrompues ou stockage bloqué : on repart de zéro */ }
-    return defaultState();
-  }
-
-  function saveState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch (e) { toast('Sauvegarde impossible : le stockage du navigateur est désactivé.'); }
-  }
-
-  let state = loadState();
-
-  // État de l'interface (non sauvegardé)
-  const ui = { tab: 'plan', weekOffset: 0, search: '', filter: 'all', modal: null };
-
-  /* ==========================================================================
-     4. UTILITAIRES
-     ========================================================================== */
-  const $ = sel => document.querySelector(sel);
-  const uid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  // Normalise un texte pour comparer sans tenir compte des accents / majuscules / œ
-  const norm = s => String(s || '').toLowerCase().replace(/œ/g, 'oe').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const recipeById = id => state.recipes.find(r => r.id === id);
-
-  // --- Dates : une semaine = lundi → dimanche, identifiée par la date de son lundi
-  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  function mondayOf(date) {
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-    return d;
-  }
-  function currentWeek() {
-    const start = addDays(mondayOf(new Date()), ui.weekOffset * 7);
-    return { start, key: iso(start) };
-  }
-  const fmtDate = (d, opts) => d.toLocaleDateString('fr-FR', opts);
-  function weekLabel(start) {
-    return `${fmtDate(start, { day: 'numeric', month: 'long' })} au ${fmtDate(addDays(start, 6), { day: 'numeric', month: 'long', year: 'numeric' })}`;
-  }
-  function getWeekPlan(key, create = false) {
-    if (!state.plan[key]) { if (!create) return {}; state.plan[key] = {}; }
-    return state.plan[key];
-  }
-
-  // --- Quantités : conversion vers une unité de base pour pouvoir additionner
-  function normalizeUnit(qty, unit) {
-    if (unit === 'kg') return [qty * 1000, 'g'];
-    if (unit === 'l')  return [qty * 1000, 'ml'];
-    if (unit === 'cl') return [qty * 10, 'ml'];
-    return [qty, unit];
-  }
-  const nf = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
-  function fmtAmount(qty, unit) {
-    if (unit === 'g' && qty >= 1000) return `${nf.format(qty / 1000)} kg`;
-    if (unit === 'ml' && qty >= 1000) return `${nf.format(qty / 1000)} L`;
-    const label = qty > 1 && UNIT_PLURAL[unit] ? UNIT_PLURAL[unit] : unit;
-    return `${nf.format(qty)}${label ? ' ' + label : ''}`;
-  }
-
-  // --- Petit message temporaire
-  let toastTimer;
-  function toast(msg) {
-    const el = $('#toast');
-    el.innerHTML = `<div class="toast-in rounded-full bg-ink-900 text-white dark:bg-white dark:text-ink-900 px-4 py-2 text-sm font-medium shadow-lg">${esc(msg)}</div>`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.innerHTML = ''; }, 2300);
-  }
-
-  /* ==========================================================================
-     5. ICÔNES SVG
-     ========================================================================== */
-  const svg = (path, cls = 'w-4 h-4') =>
-    `<svg class="${cls}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`;
-  const I = {
-    plus:  svg('<path d="M12 5v14M5 12h14"/>'),
-    x:     svg('<path d="M6 6l12 12M18 6L6 18"/>'),
-    left:  svg('<path d="M15 6l-6 6 6 6"/>'),
-    right: svg('<path d="M9 6l6 6-6 6"/>'),
-    swap:  svg('<path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 9a8 8 0 00-14-3M4 15a8 8 0 0014 3"/>'),
-    trash: svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/>'),
-    moon:  svg('<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>', 'w-5 h-5'),
-    sun:   svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>', 'w-5 h-5'),
-    chev:  svg('<path d="M6 9l6 6 6-6"/>', 'chev w-4 h-4 transition-transform'),
-    grip:  svg('<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>', 'w-4 h-4'),
-    copy:  svg('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>')
-  };
-
-  /* ==========================================================================
-     6. LOGIQUE MÉTIER
-     ========================================================================== */
-
-  /** Liste des repas planifiés d'une semaine, triés par jour puis créneau. */
-  function planEntries(weekKey) {
-    const plan = state.plan[weekKey] || {};
-    return Object.entries(plan).map(([key, e]) => {
-      const [day, slot] = key.split('-');
-      return { key, day: Number(day), slot, p: e.p || 1, r: recipeById(e.rid) };
-    }).filter(x => x.r)
-      .sort((a, b) => a.day - b.day || SLOT_IDS.indexOf(a.slot) - SLOT_IDS.indexOf(b.slot));
-  }
-
-  /** Liste de courses : additionne les ingrédients identiques (même nom + même unité de base). */
-  function buildShopping(weekKey) {
-    const map = new Map();
-    for (const en of planEntries(weekKey)) {
-      for (const ing of en.r.ings) {
-        const [q, u] = normalizeUnit(Number(ing.qty) || 0, ing.unit);
-        const key = `${norm(ing.name)}|${u}`;
-        const item = map.get(key) || { key, name: cap(ing.name.trim()), unit: u, aisle: ing.aisle || 'Autre', qty: 0 };
-        item.qty += q * en.p;
-        map.set(key, item);
-      }
-    }
-    const groups = {};
-    for (const it of map.values()) {
-      const aisle = AISLES.includes(it.aisle) ? it.aisle : 'Autre';
-      (groups[aisle] = groups[aisle] || []).push(it);
-    }
-    for (const a in groups) groups[a].sort((x, y) => x.name.localeCompare(y.name, 'fr'));
-    return groups;
-  }
-
-  /* --- Règles du guide Meal Prep --------------------------------------------
-     Chaque règle cherche des mots-clés dans les ingrédients des repas planifiés.
-     Si au moins `min` repas sont concernés, une carte de conseil est générée.
-     `unit` + `total` : somme des quantités concernées (en unité de base).
-     `order` : position dans le déroulé de la session de cuisine (0 = hors session).
-     -------------------------------------------------------------------------- */
-  const PREP_RULES = [
-    {
-      id: 'oven', order: 1, icon: '🔥', title: 'Légumes rôtis au four',
-      kw: ['carotte', 'courgette', 'pomme de terre', 'patate douce', 'poivron'], min: 2,
-      step: 'Lancer le four à 200 °C et enfourner les légumes en premier : c’est l’étape la plus longue, elle cuit toute seule.',
-      advice: c => `${c.hits.length} repas utilisent des légumes à rôtir. Les tailler en gros morceaux, les répartir sur deux plaques (racines d’un côté, légumes tendres de l’autre) avec un filet d’huile, 25 à 35 min. Ils se gardent 4 jours au frais et se réchauffent bien. Les cuisses de poulet peuvent cuire sur la même plaque.`
-    },
-    {
-      id: 'grains', order: 2, icon: '🍚', title: 'Féculents cuits en lot',
-      kw: ['riz', 'quinoa', 'pates', 'lentilles'], min: 2, unit: 'g',
-      step: 'Cuire tous les féculents d’un coup (riz, quinoa, lentilles) pendant que le four tourne.',
-      advice: c => `${c.hits.length} repas contiennent un féculent${c.total ? `, soit environ ${fmtAmount(c.total, 'g')} à cuire (poids cru)` : ''}. Cuire en une seule fois, étaler sur un plateau pour refroidir vite, puis portionner. Compter 4 à 5 jours au frais. Garder les pâtes un peu fermes : elles finiront de cuire au réchauffage.`
-    },
-    {
-      id: 'protein', order: 3, icon: '🍗', title: 'Protéines cuites en avance',
-      kw: ['poulet', 'boeuf', 'dinde'], min: 2,
-      step: 'Cuire les viandes : poulet à la poêle ou au four, bœuf haché à la poêle (en grosse quantité si chili et bolognaise sont au menu).',
-      advice: c => `${c.hits.length} repas utilisent de la viande ou de la volaille. Les cuire en lot, refroidir rapidement et conserver 3 à 4 jours maximum. Pour les repas prévus plus tard dans la semaine, congeler les portions dès la fin de la session.`
-    },
-    {
-      id: 'base', order: 4, icon: '🧅', title: 'Base aromatique oignon-ail-tomate',
-      kw: ['oignon', 'ail', 'tomates concassees'], min: 2,
-      step: 'Faire revenir une grande base d’oignons et d’ail, puis la partager entre les plats mijotés (chili, bolognaise, curry, dahl).',
-      advice: c => `${c.hits.length} plats mijotés partent de la même base. En préparer une grosse casserole d’un coup et la répartir : on gagne une cuisson par plat et beaucoup de vaisselle.`
-    },
-    {
-      id: 'eggs', order: 5, icon: '🥚', title: 'Œufs durs',
-      kw: ['oeufs'], min: 2, unit: 'pièce',
-      step: 'Plonger les œufs dans l’eau bouillante 10 min, puis dans l’eau glacée.',
-      advice: c => `${c.hits.length} repas utilisent des œufs${c.total ? ` (${fmtAmount(c.total, 'pièce')} au total)` : ''}. Cuire d’un coup les œufs destinés aux collations et aux salades : 10 min dans l’eau bouillante, puis eau glacée. Non écalés, ils se gardent 7 jours au frigo.`
-    },
-    {
-      id: 'oats', order: 6, icon: '🥣', title: 'Bocaux de porridge ou d’overnight oats',
-      kw: ["flocons d'avoine"], min: 2,
-      step: 'Monter les bocaux de petit-déjeuner (flocons, lait, yaourt) et les ranger au frais.',
-      advice: c => `${c.hits.length} petits-déjeuners utilisent des flocons d’avoine. Préparer les bocaux d’overnight oats pour 3 jours (au-delà, la texture se dégrade) et ajouter fruits et graines au moment de manger.`
-    },
-    {
-      id: 'fish', order: 0, icon: '🐟', title: 'Poisson frais : à placer en début de semaine',
-      kw: ['saumon'], min: 1,
-      advice: c => `Le poisson frais se garde 1 à 2 jours au frigo. Le planifier le lundi ou le mardi, ou le congeler le jour de l’achat et le décongeler la veille au réfrigérateur. Concerné : ${c.hits.map(h => `${DAYS[h.day].toLowerCase()} (${slotById(h.slot).short.toLowerCase()})`).join(', ')}.`
-    }
-  ];
-
-  function analyzePrep(entries) {
-    const out = [];
-    for (const rule of PREP_RULES) {
-      const hits = [];
-      let total = 0;
-      for (const en of entries) {
-        const matched = en.r.ings.filter(i => rule.kw.some(k => norm(i.name).includes(norm(k))));
-        if (!matched.length) continue;
-        hits.push(en);
-        if (rule.unit) {
-          for (const m of matched) {
-            const [q, u] = normalizeUnit(Number(m.qty) || 0, m.unit);
-            if (u === rule.unit) total += q * en.p;
-          }
-        }
-      }
-      if (hits.length >= (rule.min || 2)) out.push({ rule, hits, total });
-    }
-    return out;
-  }
-
-  /* ==========================================================================
-     7. ACTIONS (modifient l'état puis re-rendent)
-     ========================================================================== */
-  function setMeal(key, rid, portions) {
-    const plan = getWeekPlan(currentWeek().key, true);
-    plan[key] = { rid, p: portions || (plan[key] && plan[key].p) || 1 };
-    saveState();
-  }
-
-  function removeRecipe(rid) {
-    state.recipes = state.recipes.filter(r => r.id !== rid);
-    // Retire la recette de toutes les semaines planifiées
-    for (const wk of Object.keys(state.plan)) {
-      for (const k of Object.keys(state.plan[wk])) if (state.plan[wk][k].rid === rid) delete state.plan[wk][k];
-    }
-    saveState();
-  }
-
-  /* ==========================================================================
-     8. VUES
-     ========================================================================== */
-  const TABS = [
-    { id: 'plan',    label: 'Planning',  icon: '📅' },
-    { id: 'recipes', label: 'Recettes',  icon: '📖' },
-    { id: 'shop',    label: 'Courses',   icon: '🛒' },
-    { id: 'prep',    label: 'Meal prep', icon: '🍱' }
-  ];
-
-  const card = 'rounded-2xl border border-stone-200 bg-white dark:border-white/10 dark:bg-ink-900';
-  const btnPrimary = 'inline-flex items-center justify-center gap-1.5 rounded-xl bg-leaf-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-leaf-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf-500 transition-colors';
-  const btnGhost = 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-sm font-medium hover:bg-stone-50 dark:border-white/15 dark:bg-transparent dark:hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf-500 transition-colors';
-  const btnIcon = 'inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-ink-800 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-leaf-500 transition-colors';
-
-  /* ---------- Coque de l'application : en-tête + navigation ---------- */
-  function renderHeader() {
-    const dark = document.documentElement.classList.contains('dark');
-    return `
-    <header class="sticky top-0 z-30 border-b border-stone-200 bg-chalk/85 backdrop-blur dark:border-white/10 dark:bg-ink-950/85">
-      <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
-        <div class="flex items-center gap-2.5">
-          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-leaf-500 text-lg" aria-hidden="true">🥗</span>
-          <span class="font-display text-xl font-bold">Mise en place</span>
-        </div>
-        <nav class="ml-6 hidden gap-1 md:flex" aria-label="Navigation principale">
-          ${TABS.map(t => `
-            <button data-action="tab" data-tab="${t.id}" ${ui.tab === t.id ? 'aria-current="page"' : ''}
-              class="rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors ${ui.tab === t.id
-                ? 'bg-leaf-100 text-leaf-700 dark:bg-leaf-400/15 dark:text-leaf-200'
-                : 'text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-white/5'}">
-              <span aria-hidden="true">${t.icon}</span> ${t.label}
-            </button>`).join('')}
-        </nav>
-        <button data-action="toggle-theme" class="${btnIcon} ml-auto h-10 w-10" aria-label="${dark ? 'Passer en mode clair' : 'Passer en mode sombre'}">
-          ${dark ? I.sun : I.moon}
-        </button>
-      </div>
-    </header>`;
-  }
-
-  function renderBottomNav() {
-    return `
-    <nav class="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 backdrop-blur md:hidden dark:border-white/10 dark:bg-ink-900/95" aria-label="Navigation principale">
-      <div class="grid grid-cols-4">
-        ${TABS.map(t => `
-          <button data-action="tab" data-tab="${t.id}" ${ui.tab === t.id ? 'aria-current="page"' : ''}
-            class="flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold transition-colors ${ui.tab === t.id ? 'text-leaf-600 dark:text-leaf-200' : 'text-stone-500 dark:text-stone-400'}">
-            <span class="text-xl leading-none" aria-hidden="true">${t.icon}</span>${t.label}
-          </button>`).join('')}
-      </div>
-    </nav>`;
-  }
-
-  /* ---------- Briques réutilisables ---------- */
-  function filterChips() {
-    const chip = (id, label) => `
-      <button data-action="filter" data-cat="${id}" aria-pressed="${ui.filter === id}"
-        class="whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${ui.filter === id
-          ? 'border-leaf-500 bg-leaf-500 text-white'
-          : 'border-stone-300 bg-white hover:bg-stone-50 dark:border-white/15 dark:bg-transparent dark:hover:bg-white/5'}">${label}</button>`;
-    return `<div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-      ${chip('all', 'Toutes')}${SLOTS.map(s => chip(s.id, `${s.icon} ${s.short}`)).join('')}
-    </div>`;
-  }
-
-  function searchBox(placeholder = 'Rechercher une recette ou un ingrédient') {
-    return `<input id="search" type="search" value="${esc(ui.search)}" placeholder="${placeholder}" aria-label="${placeholder}"
-      class="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm placeholder:text-stone-400 focus:border-leaf-500 focus:outline-none focus:ring-2 focus:ring-leaf-500/30 dark:border-white/15 dark:bg-ink-900">`;
-  }
-
-  function filteredRecipes() {
-    const q = norm(ui.search);
-    return state.recipes
-      .filter(r => ui.filter === 'all' || r.cat === ui.filter)
-      .filter(r => !q || norm(r.title).includes(q) || r.ings.some(i => norm(i.name).includes(q)))
-      .sort((a, b) => SLOT_IDS.indexOf(a.cat) - SLOT_IDS.indexOf(b.cat) || a.title.localeCompare(b.title, 'fr'));
-  }
-
-  /** Petite ligne de recette, glissable (utilisée dans la colonne latérale du planning). */
-  function recipeMini(r) {
-    const s = slotById(r.cat);
-    return `
-    <div draggable="true" data-drag-recipe="${r.id}" class="group flex cursor-grab items-center gap-2.5 rounded-xl border border-stone-200 bg-white p-2.5 active:cursor-grabbing dark:border-white/10 dark:bg-ink-900">
-      <span class="text-stone-300 dark:text-stone-600">${I.grip}</span>
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-semibold">${esc(r.title)}</p>
-        <p class="truncate text-xs text-stone-500 dark:text-stone-400">${s.short}, ${r.ings.length} ingrédients</p>
-      </div>
-      <button data-action="add-to-plan" data-rid="${r.id}" class="${btnIcon} shrink-0" aria-label="Ajouter « ${esc(r.title)} » au planning">${I.plus}</button>
-    </div>`;
-  }
-
-  /** Carte de recette complète (onglet Recettes). */
-  function recipeCard(r) {
-    const s = slotById(r.cat), t = TONE[r.cat];
-    return `
-    <article draggable="true" data-drag-recipe="${r.id}" class="${card} flex flex-col p-4">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${t.chip}">${s.icon} ${s.short}</span>
-          <h3 class="mt-2 font-display text-lg font-bold leading-snug">${esc(r.title)}</h3>
-        </div>
-        <button data-action="delete-recipe" data-rid="${r.id}" class="${btnIcon} shrink-0" aria-label="Supprimer « ${esc(r.title)} »">${I.trash}</button>
-      </div>
-      <details class="mt-3 flex-1">
-        <summary class="flex cursor-pointer items-center justify-between rounded-lg text-sm font-medium text-stone-600 dark:text-stone-300">
-          ${r.ings.length} ingrédients (1 portion) ${I.chev}
-        </summary>
-        <ul class="mt-2 space-y-1 text-sm">
-          ${r.ings.map(i => `<li class="flex justify-between gap-3 border-b border-dashed border-stone-200 py-1 dark:border-white/10">
-            <span>${esc(cap(i.name))}</span><span class="shrink-0 text-stone-500 dark:text-stone-400">${esc(fmtAmount(Number(i.qty) || 0, i.unit))}</span></li>`).join('')}
-        </ul>
-      </details>
-      <button data-action="add-to-plan" data-rid="${r.id}" class="${btnGhost} mt-4 w-full">${I.plus} Ajouter au planning</button>
-    </article>`;
-  }
-
-  /* ---------- Vue : Planning ---------- */
-  function slotCell(d, slot, plan) {
-    const key = `${d}-${slot.id}`, e = plan[key], r = e && recipeById(e.rid), t = TONE[slot.id];
-    const label = `<div class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-stone-500 dark:text-stone-400"><span class="h-2 w-2 rounded-full ${t.dot}"></span>${slot.short}</div>`;
-    if (!r) {
-      return `
-      <div data-drop="${key}" class="rounded-xl border border-dashed border-stone-300 p-2.5 transition-colors dark:border-white/15">
-        ${label}
-        <button data-action="pick-slot" data-key="${key}" class="flex w-full items-center gap-1.5 rounded-lg py-1 text-left text-sm text-stone-400 hover:text-leaf-600 dark:hover:text-leaf-200">${I.plus} Ajouter un repas</button>
-      </div>`;
-    }
-    return `
-    <div data-drop="${key}" class="rounded-xl border p-2.5 transition-colors ${t.box}">
-      ${label}
-      <div draggable="true" data-drag-slot="${key}" class="cursor-grab active:cursor-grabbing">
-        <p class="text-sm font-semibold leading-snug">${esc(r.title)}</p>
-      </div>
-      <div class="mt-2 flex items-center justify-between gap-2">
-        <div class="inline-flex items-center rounded-lg border border-stone-300/80 bg-white/70 text-sm dark:border-white/15 dark:bg-white/5" role="group" aria-label="Nombre de portions">
-          <button data-action="portion" data-key="${key}" data-delta="-1" class="h-7 w-7 rounded-l-lg hover:bg-stone-100 dark:hover:bg-white/10" aria-label="Moins de portions">−</button>
-          <span class="min-w-[4.5rem] px-1 text-center text-xs font-medium">${e.p} portion${e.p > 1 ? 's' : ''}</span>
-          <button data-action="portion" data-key="${key}" data-delta="1" class="h-7 w-7 rounded-r-lg hover:bg-stone-100 dark:hover:bg-white/10" aria-label="Plus de portions">+</button>
-        </div>
-        <div class="flex">
-          <button data-action="pick-slot" data-key="${key}" class="${btnIcon} h-7 w-7" aria-label="Remplacer ce repas">${I.swap}</button>
-          <button data-action="slot-remove" data-key="${key}" class="${btnIcon} h-7 w-7" aria-label="Retirer ce repas">${I.x}</button>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  function viewPlan() {
-    const { start, key: wk } = currentWeek();
-    const plan = getWeekPlan(wk);
-    const planned = planEntries(wk).length;
-    const todayIso = iso(new Date());
-    const recipes = filteredRecipes();
-
-    const days = DAYS.map((name, d) => {
-      const date = addDays(start, d);
-      const isToday = iso(date) === todayIso;
-      return `
-      <section class="${card} p-3.5 ${isToday ? 'ring-2 ring-leaf-500/60' : ''}" aria-label="${name}">
-        <h3 class="mb-3 flex items-baseline justify-between">
-          <span class="font-display text-lg font-bold">${name}</span>
-          <span class="text-sm text-stone-500 dark:text-stone-400">${isToday ? "Aujourd'hui, " : ''}${fmtDate(date, { day: 'numeric', month: 'short' })}</span>
-        </h3>
-        <div class="space-y-2">${SLOTS.map(s => slotCell(d, s, plan)).join('')}</div>
-      </section>`;
-    }).join('');
-
-    return `
-    <div class="mb-5 flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-1">
-        <button data-action="week-prev" class="${btnIcon} h-10 w-10 border border-stone-300 dark:border-white/15" aria-label="Semaine précédente">${I.left}</button>
-        <button data-action="week-next" class="${btnIcon} h-10 w-10 border border-stone-300 dark:border-white/15" aria-label="Semaine suivante">${I.right}</button>
-      </div>
-      <div class="min-w-0">
-        <h1 class="font-display text-xl font-bold leading-tight sm:text-2xl">Semaine du ${esc(weekLabel(start))}</h1>
-        <p class="text-sm text-stone-500 dark:text-stone-400">${planned} repas planifiés sur 28</p>
-      </div>
-      <div class="ml-auto flex gap-2">
-        ${ui.weekOffset !== 0 ? `<button data-action="week-today" class="${btnGhost}">Cette semaine</button>` : ''}
-        <button data-action="clear-week" class="${btnGhost}" ${planned ? '' : 'disabled style="opacity:.5;pointer-events:none"'}>${I.trash} Vider</button>
-      </div>
-    </div>
-
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 lg:items-start">${days}</div>
-
-      <!-- Colonne latérale : bibliothèque glissable (masquée sur mobile, voir l'onglet Recettes) -->
-      <aside class="hidden lg:block">
-        <div class="sticky top-20 ${card} p-3.5">
-          <h2 class="font-display text-lg font-bold">Recettes</h2>
-          <p class="mb-3 text-sm text-stone-500 dark:text-stone-400">Glisser une recette sur un créneau, ou utiliser le bouton +.</p>
-          <div class="mb-2">${searchBox('Rechercher')}</div>
-          <div class="mb-3">${filterChips()}</div>
-          <div id="side-scroll" class="max-h-[calc(100vh-22rem)] min-h-[12rem] space-y-2 overflow-y-auto pr-1">
-            ${recipes.length ? recipes.map(recipeMini).join('') : '<p class="py-6 text-center text-sm text-stone-500">Aucune recette ne correspond.</p>'}
-          </div>
-          <button data-action="new-recipe" class="${btnGhost} mt-3 w-full">${I.plus} Nouvelle recette</button>
-        </div>
-      </aside>
-    </div>`;
-  }
-
-  /* ---------- Vue : Recettes ---------- */
-  function viewRecipes() {
-    const recipes = filteredRecipes();
-    return `
-    <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 class="font-display text-2xl font-bold">Bibliothèque de recettes</h1>
-        <p class="text-sm text-stone-500 dark:text-stone-400">${state.recipes.length} recettes, quantités données pour 1 portion.</p>
-      </div>
-      <button data-action="new-recipe" class="${btnPrimary}">${I.plus} Nouvelle recette</button>
-    </div>
-    <div class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,22rem)_1fr] sm:items-center">${searchBox()}${filterChips()}</div>
-    ${recipes.length ? `<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${recipes.map(recipeCard).join('')}</div>`
-      : `<div class="${card} p-10 text-center"><p class="font-semibold">Aucune recette trouvée</p><p class="mt-1 text-sm text-stone-500">Modifier la recherche ou ajouter une nouvelle recette.</p></div>`}`;
-  }
-
-  /* ---------- Vue : Liste de courses ---------- */
-  function viewShop() {
-    const { start, key: wk } = currentWeek();
-    const groups = buildShopping(wk);
-    const checked = state.checked[wk] || {};
-    const items = Object.values(groups).flat();
-    const done = items.filter(i => checked[i.key]).length;
-    const pct = items.length ? Math.round(done / items.length * 100) : 0;
-
-    const header = `
-    <div class="mb-5 flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-1">
-        <button data-action="week-prev" class="${btnIcon} h-10 w-10 border border-stone-300 dark:border-white/15" aria-label="Semaine précédente">${I.left}</button>
-        <button data-action="week-next" class="${btnIcon} h-10 w-10 border border-stone-300 dark:border-white/15" aria-label="Semaine suivante">${I.right}</button>
-      </div>
-      <div>
-        <h1 class="font-display text-2xl font-bold leading-tight">Liste de courses</h1>
-        <p class="text-sm text-stone-500 dark:text-stone-400">Semaine du ${esc(weekLabel(start))}</p>
-      </div>
-      <div class="ml-auto flex gap-2">
-        <button data-action="copy-list" class="${btnGhost}" ${items.length ? '' : 'disabled style="opacity:.5;pointer-events:none"'}>${I.copy} Copier</button>
-        <button data-action="uncheck-all" class="${btnGhost}" ${done ? '' : 'disabled style="opacity:.5;pointer-events:none"'}>Tout décocher</button>
-      </div>
-    </div>`;
-
-    if (!items.length) {
-      return header + `
-      <div class="${card} p-10 text-center">
-        <p class="text-4xl" aria-hidden="true">🛒</p>
-        <p class="mt-3 font-display text-lg font-bold">La liste est vide</p>
-        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">Planifier des repas pour cette semaine, la liste se remplit automatiquement.</p>
-        <button data-action="tab" data-tab="plan" class="${btnPrimary} mt-5">Aller au planning</button>
-      </div>`;
-    }
-
-    const progress = `
-    <div class="${card} mb-5 p-4">
-      <div class="mb-2 flex items-baseline justify-between text-sm">
-        <span class="font-semibold">${done} sur ${items.length} articles dans le panier</span><span class="text-stone-500">${pct} %</span>
-      </div>
-      <div class="h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-white/10" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
-        <div class="h-full rounded-full bg-leaf-500 transition-all" style="width:${pct}%"></div>
-      </div>
-    </div>`;
-
-    const aisles = AISLES.filter(a => groups[a]).map(a => `
-      <section class="${card} p-4">
-        <h2 class="mb-2 flex items-center gap-2 font-display text-lg font-bold"><span aria-hidden="true">${AISLE_ICON[a]}</span>${a}
-          <span class="ml-auto text-sm font-medium text-stone-400">${groups[a].length}</span></h2>
-        <ul>
-          ${groups[a].map(it => `
-          <li>
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2.5 hover:bg-stone-50 dark:hover:bg-white/5">
-              <input type="checkbox" data-check="${esc(it.key)}" ${checked[it.key] ? 'checked' : ''} class="h-5 w-5 shrink-0 rounded border-stone-300 accent-[#2F7D5B]">
-              <span class="min-w-0 flex-1 ${checked[it.key] ? 'text-stone-400 line-through dark:text-stone-500' : ''}">${esc(it.name)}</span>
-              <span class="shrink-0 text-sm font-semibold ${checked[it.key] ? 'text-stone-400' : 'text-leaf-600 dark:text-leaf-200'}">${esc(fmtAmount(Math.round(it.qty * 100) / 100, it.unit))}</span>
-            </label>
-          </li>`).join('')}
-        </ul>
-      </section>`).join('');
-
-    return `${header}${progress}<div class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">${aisles}</div>`;
-  }
-
-  /* ---------- Vue : Guide Meal Prep ---------- */
-  function viewPrep() {
-    const { start, key: wk } = currentWeek();
-    const entries = planEntries(wk);
-    const header = `
-    <div class="mb-5 flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-1">
-        <button data-action="week-prev" class="${btnIcon} h-10 w-10 border border-stone-300 dark:border-white/15" aria-label="Semaine précédente">${I.left}</button>
-        <button data-action="week-next" class="${btnIcon} h-10 w-10 border border-stone-300 dark:border-white/15" aria-label="Semaine suivante">${I.right}</button>
-      </div>
-      <div>
-        <h1 class="font-display text-2xl font-bold leading-tight">Guide meal prep</h1>
-        <p class="text-sm text-stone-500 dark:text-stone-400">Semaine du ${esc(weekLabel(start))}</p>
-      </div>
-    </div>`;
-
-    if (!entries.length) {
-      return header + `
-      <div class="${card} p-10 text-center">
-        <p class="text-4xl" aria-hidden="true">🍱</p>
-        <p class="mt-3 font-display text-lg font-bold">Rien à préparer pour l'instant</p>
-        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">Planifier au moins deux repas : le guide repère ce qui peut se cuisiner en même temps.</p>
-        <button data-action="tab" data-tab="plan" class="${btnPrimary} mt-5">Aller au planning</button>
-      </div>`;
-    }
-
-    const results = analyzePrep(entries);
-    const portions = entries.reduce((n, e) => n + e.p, 0);
-    const distinct = Object.values(buildShopping(wk)).flat().length;
-
-    const stats = `
-    <div class="mb-5 grid grid-cols-3 gap-3">
-      ${[[entries.length, 'repas'], [portions, 'portions'], [distinct, 'articles à acheter']].map(([n, l]) => `
-        <div class="${card} p-4"><p class="font-display text-3xl font-extrabold text-leaf-600 dark:text-leaf-200">${n}</p><p class="text-sm text-stone-500 dark:text-stone-400">${l}</p></div>`).join('')}
-    </div>`;
-
-    const cards = results.map(({ rule, hits, total }) => `
-      <article class="${card} p-4">
-        <h3 class="flex items-center gap-2 font-display text-lg font-bold"><span aria-hidden="true">${rule.icon}</span>${rule.title}</h3>
-        <p class="mt-2 text-sm leading-relaxed">${esc(rule.advice({ hits, total }))}</p>
-        <ul class="mt-3 flex flex-wrap gap-1.5">
-          ${hits.map(h => `<li class="rounded-full px-2.5 py-1 text-xs font-medium ${TONE[h.slot].chip}">${DAYS[h.day].slice(0, 3)}. ${esc(h.r.title)}</li>`).join('')}
-        </ul>
-      </article>`).join('');
-
-    // Déroulé de la session : uniquement les étapes utiles, dans l'ordre de cuisson
-    const steps = results.filter(x => x.rule.order > 0).sort((a, b) => a.rule.order - b.rule.order).map(x => x.rule.step);
-    if (steps.length) steps.push('Laisser refroidir (moins de 2 h à température ambiante), puis portionner dans des boîtes étiquetées avec le nom du plat et la date.');
-    const timeline = steps.length ? `
-      <section class="${card} p-4 lg:sticky lg:top-20">
-        <h2 class="font-display text-lg font-bold">Déroulé conseillé de la session</h2>
-        <p class="mb-3 text-sm text-stone-500 dark:text-stone-400">Environ 2 h le dimanche, dans cet ordre pour que tout cuise en parallèle.</p>
-        <ol class="space-y-3">
-          ${steps.map((s, i) => `<li class="flex gap-3"><span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-xs font-bold text-leaf-700 dark:bg-leaf-400/15 dark:text-leaf-200">${i + 1}</span><span class="text-sm leading-relaxed">${esc(s)}</span></li>`).join('')}
-        </ol>
-      </section>` : '';
-
-    // Repas de fin de semaine contenant de la viande ou du poisson : à congeler
-    const toFreeze = entries.filter(e => e.day >= 3 && e.r.ings.some(i => i.aisle === VP));
-    const freeze = toFreeze.length ? `
-      <article class="${card} border-sky-200 p-4 dark:border-sky-400/30">
-        <h3 class="flex items-center gap-2 font-display text-lg font-bold"><span aria-hidden="true">🧊</span>À congeler après cuisson</h3>
-        <p class="mt-2 text-sm leading-relaxed">Ces repas tombent à partir de jeudi : viande et poisson cuits ne tiennent que 3 à 4 jours au frigo. Les congeler en portions individuelles et les sortir la veille.</p>
-        <ul class="mt-3 flex flex-wrap gap-1.5">${toFreeze.map(h => `<li class="rounded-full px-2.5 py-1 text-xs font-medium ${TONE[h.slot].chip}">${DAYS[h.day].slice(0, 3)}. ${esc(h.r.title)}</li>`).join('')}</ul>
-      </article>` : '';
-
-    const empty = !results.length && !freeze ? `
-      <div class="${card} p-6"><p class="font-semibold">Peu de recoupements cette semaine</p>
-      <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">Les repas planifiés n'ont pas assez d'ingrédients en commun. Ajouter d'autres plats à base de riz, de poulet ou de légumes rôtis pour regrouper les cuissons.</p></div>` : '';
-
-    const rules = `
-      <section class="${card} p-4">
-        <h2 class="font-display text-lg font-bold">Conservation en bref</h2>
-        <ul class="mt-2 space-y-1.5 text-sm leading-relaxed">
-          <li>Plats cuisinés : 3 à 4 jours au réfrigérateur (4 °C maximum).</li>
-          <li>Refroidir vite : étaler en couche fine, au frigo en moins de 2 h.</li>
-          <li>Étiqueter chaque boîte avec le plat et la date de préparation.</li>
-          <li>Congélation : jusqu'à 3 mois, décongélation au réfrigérateur la veille.</li>
-          <li>Garder séparés les éléments croquants, les sauces et les herbes fraîches, à ajouter au dernier moment.</li>
-        </ul>
-      </section>`;
-
-    return `${header}${stats}
-    <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">${cards}${freeze}${empty}</div>
-      <div class="space-y-4">${timeline}${rules}</div>
-    </div>`;
-  }
-
-  /* ==========================================================================
-     9. RENDU PRINCIPAL
-     ========================================================================== */
-  function render() {
-    // Sauvegarde le focus (champ de recherche) et le scroll de la colonne latérale
-    const active = document.activeElement;
-    const focusId = active && active.id;
-    const caret = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
-    const side = $('#side-scroll');
-    const sideTop = side ? side.scrollTop : 0;
-
-    const views = { plan: viewPlan, recipes: viewRecipes, shop: viewShop, prep: viewPrep };
-    $('#app').innerHTML = `
-      ${renderHeader()}
-      <main class="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 md:pb-12">
-        ${views[ui.tab]()}
-        <footer class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-5 text-xs text-stone-500 dark:border-white/10 dark:text-stone-400">
-          <span>Les données restent dans ce navigateur (localStorage). Rien n'est envoyé en ligne.</span>
-          <button data-action="reset-all" class="underline underline-offset-2 hover:text-ink-800 dark:hover:text-white">Réinitialiser toutes les données</button>
-        </footer>
-      </main>
-      ${renderBottomNav()}`;
-
-    const newSide = $('#side-scroll');
-    if (newSide) newSide.scrollTop = sideTop;
-    if (focusId) {
-      const el = document.getElementById(focusId);
-      if (el) { el.focus(); if (caret !== null) try { el.setSelectionRange(caret, caret); } catch (e) {} }
-    }
-  }
-
-  /* ==========================================================================
-     10. MODALES
-     ========================================================================== */
-  function modalShell(title, body) {
-    return `
-    <div class="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div data-action="close-modal" class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm"></div>
-      <div role="dialog" aria-modal="true" aria-label="${esc(title)}" class="safe-bottom relative flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:max-w-xl sm:rounded-3xl dark:bg-ink-900">
-        <div class="flex items-center justify-between px-5 pb-2 pt-5">
-          <h2 class="font-display text-xl font-bold">${esc(title)}</h2>
-          <button data-action="close-modal" class="${btnIcon}" aria-label="Fermer">${I.x}</button>
-        </div>
-        <div class="overflow-y-auto px-5 pb-5">${body}</div>
-      </div>
-    </div>`;
-  }
-
-  const fieldCls = 'w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-leaf-500 focus:outline-none focus:ring-2 focus:ring-leaf-500/30 dark:border-white/15 dark:bg-ink-800';
-  const opts = (list, sel) => list.map(v => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(v)}</option>`).join('');
-
-  function ingRow(ing = {}) {
-    return `
-    <div class="ing-row grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-stone-200 p-2.5 dark:border-white/10">
-      <input class="ing-name ${fieldCls}" placeholder="Ingrédient (ex. Riz basmati)" value="${esc(ing.name || '')}" aria-label="Nom de l'ingrédient">
-      <button type="button" data-action="remove-ing-row" class="${btnIcon} h-10 w-10" aria-label="Supprimer cet ingrédient">${I.x}</button>
-      <div class="col-span-2 grid grid-cols-[5rem_1fr_1fr] gap-2">
-        <input class="ing-qty ${fieldCls}" type="number" min="0" step="any" inputmode="decimal" placeholder="Qté" value="${ing.qty ?? ''}" aria-label="Quantité">
-        <select class="ing-unit ${fieldCls}" aria-label="Unité">${opts(UNITS, ing.unit || 'g')}</select>
-        <select class="ing-aisle ${fieldCls}" aria-label="Rayon">${opts(AISLES, ing.aisle || 'Épicerie')}</select>
-      </div>
-    </div>`;
-  }
-
-  function modalRecipeForm() {
-    return modalShell('Nouvelle recette', `
-      <div class="space-y-4">
-        <div>
-          <label for="rf-title" class="mb-1 block text-sm font-semibold">Nom de la recette</label>
-          <input id="rf-title" class="${fieldCls}" placeholder="Ex. Bowl de patate douce et houmous" autocomplete="off">
-        </div>
-        <div>
-          <label for="rf-cat" class="mb-1 block text-sm font-semibold">Catégorie</label>
-          <select id="rf-cat" class="${fieldCls}">${SLOTS.map(s => `<option value="${s.id}">${s.icon} ${s.label}</option>`).join('')}</select>
-        </div>
-        <div>
-          <p class="mb-1 text-sm font-semibold">Ingrédients pour 1 portion</p>
-          <div id="rf-ings" class="space-y-2">${ingRow()}${ingRow()}</div>
-          <button type="button" data-action="add-ing-row" class="${btnGhost} mt-2 w-full">${I.plus} Ajouter un ingrédient</button>
-        </div>
-        <p id="rf-error" class="hidden rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300" role="alert"></p>
-        <button type="button" data-action="save-recipe" class="${btnPrimary} w-full">Enregistrer la recette</button>
-      </div>`);
-  }
-
-  /** Choix du jour / créneau pour une recette donnée (bouton « Ajouter au planning »). */
-  function modalSlotChooser(rid) {
-    const r = recipeById(rid);
-    if (!r) return '';
-    const { start, key: wk } = currentWeek();
-    const plan = getWeekPlan(wk);
-    // Pré-sélectionne le premier jour dont le créneau de cette catégorie est libre
-    let defDay = DAYS.findIndex((_, d) => !plan[`${d}-${r.cat}`]);
-    if (defDay < 0) defDay = 0;
-    return modalShell('Ajouter au planning', `
-      <p class="mb-4 text-sm text-stone-600 dark:text-stone-300"><strong>${esc(r.title)}</strong><br>Semaine du ${esc(weekLabel(start))}</p>
-      <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="sc-day" class="mb-1 block text-sm font-semibold">Jour</label>
-            <select id="sc-day" class="${fieldCls}">
-              ${DAYS.map((n, d) => `<option value="${d}" ${d === defDay ? 'selected' : ''}>${n} ${addDays(start, d).getDate()}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label for="sc-slot" class="mb-1 block text-sm font-semibold">Créneau</label>
-            <select id="sc-slot" class="${fieldCls}">
-              ${SLOTS.map(s => `<option value="${s.id}" ${s.id === r.cat ? 'selected' : ''}>${s.short}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label for="sc-portions" class="mb-1 block text-sm font-semibold">Portions</label>
-          <input id="sc-portions" type="number" min="1" max="20" value="1" class="${fieldCls}">
-          <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">Pour cuisiner en lot, augmenter le nombre de portions : la liste de courses suit.</p>
-        </div>
-        <button type="button" data-action="confirm-add" data-rid="${r.id}" class="${btnPrimary} w-full">Ajouter</button>
-      </div>`);
-  }
-
-  /** Choix d'une recette pour un créneau vide ou à remplacer. */
-  function modalPicker(key, all) {
-    const [d, slotId] = key.split('-');
-    const slot = slotById(slotId);
-    const list = state.recipes
-      .filter(r => all || r.cat === slotId)
-      .sort((a, b) => SLOT_IDS.indexOf(a.cat) - SLOT_IDS.indexOf(b.cat) || a.title.localeCompare(b.title, 'fr'));
-    return modalShell(`${DAYS[Number(d)]}, ${slot.short.toLowerCase()}`, `
-      <div class="space-y-2">
-        ${list.length ? list.map(r => `
-          <button data-action="choose-recipe" data-rid="${r.id}" data-key="${key}" class="flex w-full items-center gap-3 rounded-xl border border-stone-200 p-3 text-left hover:border-leaf-500 hover:bg-leaf-50 dark:border-white/10 dark:hover:bg-leaf-400/10">
-            <span class="text-xl" aria-hidden="true">${slotById(r.cat).icon}</span>
-            <span class="min-w-0 flex-1"><span class="block text-sm font-semibold">${esc(r.title)}</span>
-            <span class="block text-xs text-stone-500 dark:text-stone-400">${r.ings.length} ingrédients</span></span>
-          </button>`).join('') : '<p class="py-6 text-center text-sm text-stone-500">Aucune recette dans cette catégorie.</p>'}
-      </div>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <button data-action="picker-toggle" class="${btnGhost}">${all ? `Afficher seulement « ${slot.short} »` : 'Afficher toutes les catégories'}</button>
-        <button data-action="new-recipe" class="${btnGhost}">${I.plus} Nouvelle recette</button>
-      </div>`);
-  }
-
-  function renderModal() {
-    const m = ui.modal;
-    let html = '';
-    if (m) {
-      if (m.type === 'recipe-form') html = modalRecipeForm();
-      else if (m.type === 'slot-chooser') html = modalSlotChooser(m.rid);
-      else if (m.type === 'picker') html = modalPicker(m.key, m.all);
-    }
-    $('#modal').innerHTML = html;
-    document.body.style.overflow = html ? 'hidden' : '';
-    if (html) {
-      const first = $('#modal input, #modal select, #modal button[data-action="choose-recipe"]');
-      if (first && m.type !== 'picker') first.focus();
-    }
-  }
-  const openModal = m => { ui.modal = m; renderModal(); };
-  const closeModal = () => { ui.modal = null; renderModal(); };
-
-  /* ==========================================================================
-     11. ÉVÉNEMENTS (délégation : un seul écouteur par type d'événement)
-     ========================================================================== */
-  const ACTIONS = {
-    'tab': el => { ui.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); },
-    'toggle-theme': () => {
-      const dark = document.documentElement.classList.toggle('dark');
-      try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); } catch (e) {}
-      render();
-    },
-    'filter': el => { ui.filter = el.dataset.cat; render(); },
-
-    // Navigation entre semaines
-    'week-prev':  () => { ui.weekOffset--; render(); },
-    'week-next':  () => { ui.weekOffset++; render(); },
-    'week-today': () => { ui.weekOffset = 0; render(); },
-    'clear-week': () => {
-      const { key } = currentWeek();
-      if (!confirm('Vider tous les repas de cette semaine ?')) return;
-      delete state.plan[key]; delete state.checked[key];
-      saveState(); render();
-    },
-
-    // Planning
-    'pick-slot': el => openModal({ type: 'picker', key: el.dataset.key, all: false }),
-    'picker-toggle': () => { ui.modal.all = !ui.modal.all; renderModal(); },
-    'choose-recipe': el => {
-      setMeal(el.dataset.key, el.dataset.rid);
-      closeModal(); render();
-    },
-    'portion': el => {
-      const plan = getWeekPlan(currentWeek().key), e = plan[el.dataset.key];
-      if (!e) return;
-      e.p = Math.min(20, Math.max(1, (e.p || 1) + Number(el.dataset.delta)));
-      saveState(); render();
-    },
-    'slot-remove': el => {
-      delete getWeekPlan(currentWeek().key)[el.dataset.key];
-      saveState(); render();
-    },
-    'add-to-plan': el => openModal({ type: 'slot-chooser', rid: el.dataset.rid }),
-    'confirm-add': el => {
-      const day = $('#sc-day').value, slot = $('#sc-slot').value;
-      const p = Math.min(20, Math.max(1, parseInt($('#sc-portions').value, 10) || 1));
-      const key = `${day}-${slot}`;
-      const existing = getWeekPlan(currentWeek().key)[key];
-      if (existing && existing.rid !== el.dataset.rid && !confirm('Ce créneau contient déjà un repas. Le remplacer ?')) return;
-      setMeal(key, el.dataset.rid, p);
-      closeModal(); render();
-      toast(`Ajouté : ${DAYS[Number(day)]}, ${slotById(slot).short.toLowerCase()}`);
-    },
-
-    // Recettes
-    'new-recipe': () => openModal({ type: 'recipe-form' }),
-    'add-ing-row': () => {
-      $('#rf-ings').insertAdjacentHTML('beforeend', ingRow());
-      const rows = document.querySelectorAll('#rf-ings .ing-name');
-      rows[rows.length - 1].focus();
-    },
-    'remove-ing-row': el => {
-      const rows = document.querySelectorAll('#rf-ings .ing-row');
-      if (rows.length > 1) el.closest('.ing-row').remove();
-      else el.closest('.ing-row').querySelectorAll('input').forEach(i => { i.value = ''; });
-    },
-    'save-recipe': () => {
-      const title = $('#rf-title').value.trim();
-      const cat = $('#rf-cat').value;
-      const ings = [...document.querySelectorAll('#rf-ings .ing-row')].map(row => ({
-        name: row.querySelector('.ing-name').value.trim(),
-        qty: parseFloat(String(row.querySelector('.ing-qty').value).replace(',', '.')),
-        unit: row.querySelector('.ing-unit').value,
-        aisle: row.querySelector('.ing-aisle').value
-      })).filter(i => i.name || !isNaN(i.qty));
-      const err = $('#rf-error');
-      const fail = msg => { err.textContent = msg; err.classList.remove('hidden'); };
-      if (!title) return fail('Donner un nom à la recette.');
-      if (!ings.length) return fail('Ajouter au moins un ingrédient.');
-      if (ings.some(i => !i.name)) return fail('Un ingrédient n\'a pas de nom.');
-      if (ings.some(i => isNaN(i.qty) || i.qty <= 0)) return fail('Chaque ingrédient doit avoir une quantité supérieure à 0.');
-      const recipe = { id: uid(), title, cat, ings };
-      state.recipes.push(recipe);
-      saveState();
-      // Si la modale avait été ouverte depuis un créneau, on y place directement la recette
-      closeModal(); render();
-      toast(`Recette « ${title} » enregistrée`);
-    },
-    'delete-recipe': el => {
-      const r = recipeById(el.dataset.rid);
-      if (!r) return;
-      if (!confirm(`Supprimer « ${r.title} » ? Elle sera aussi retirée du planning.`)) return;
-      removeRecipe(r.id); render();
-    },
-
-    // Courses
-    'uncheck-all': () => { delete state.checked[currentWeek().key]; saveState(); render(); },
-    'copy-list': () => {
-      const { key } = currentWeek();
-      const groups = buildShopping(key), checked = state.checked[key] || {};
-      const lines = [];
-      for (const a of AISLES) {
-        const items = (groups[a] || []).filter(i => !checked[i.key]);
-        if (!items.length) continue;
-        lines.push(a, ...items.map(i => `- ${i.name} : ${fmtAmount(Math.round(i.qty * 100) / 100, i.unit)}`), '');
-      }
-      const text = lines.join('\n').trim();
-      if (!text) return toast('Tout est déjà dans le panier');
-      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
-        .then(() => toast('Liste copiée'))
-        .catch(() => toast('Copie impossible depuis ce navigateur'));
-    },
-
-    // Divers
-    'close-modal': () => closeModal(),
-    'reset-all': () => {
-      if (!confirm('Effacer toutes les données (recettes ajoutées, planning, courses cochées) et revenir à l\'état initial ?')) return;
-      state = defaultState(); saveState(); ui.weekOffset = 0; render(); toast('Données réinitialisées');
-    }
-  };
-
-  document.addEventListener('click', e => {
-    const el = e.target.closest('[data-action]');
-    if (!el) return;
-    const fn = ACTIONS[el.dataset.action];
-    if (fn) fn(el, e);
-  });
-
-  // Recherche : on filtre à la frappe sans perdre le focus (voir render())
-  document.addEventListener('input', e => {
-    if (e.target.id === 'search') { ui.search = e.target.value; render(); }
-  });
-
-  // Cases à cocher de la liste de courses
-  document.addEventListener('change', e => {
-    const cb = e.target.closest('[data-check]');
-    if (!cb) return;
-    const { key } = currentWeek();
-    state.checked[key] = state.checked[key] || {};
-    if (cb.checked) state.checked[key][cb.dataset.check] = true; else delete state.checked[key][cb.dataset.check];
-    saveState(); render();
-  });
-
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.modal) closeModal(); });
-
-  /* ---------- Glisser-déposer ----------
-     - depuis une recette  → copie dans un créneau
-     - depuis un créneau   → déplace (ou échange) vers un autre créneau
-     Sur mobile, le glisser-déposer tactile n'est pas supporté par les navigateurs :
-     les boutons « + » / « Ajouter un repas » jouent le même rôle. */
-  document.addEventListener('dragstart', e => {
-    if (!(e.target instanceof Element)) return;
-    const rec = e.target.closest('[data-drag-recipe]');
-    const slot = e.target.closest('[data-drag-slot]');
-    if (rec) { e.dataTransfer.setData('text/plain', 'recipe:' + rec.dataset.dragRecipe); e.dataTransfer.effectAllowed = 'copy'; }
-    else if (slot) { e.dataTransfer.setData('text/plain', 'slot:' + slot.dataset.dragSlot); e.dataTransfer.effectAllowed = 'move'; }
-  });
-  document.addEventListener('dragover', e => {
-    if (!(e.target instanceof Element)) return;
-    const cell = e.target.closest('[data-drop]');
-    if (!cell) return;
-    e.preventDefault();
-    cell.classList.add('drop-hover');
-  });
-  document.addEventListener('dragleave', e => {
-    if (!(e.target instanceof Element)) return;
-    const cell = e.target.closest('[data-drop]');
-    if (cell && !cell.contains(e.relatedTarget)) cell.classList.remove('drop-hover');
-  });
-  document.addEventListener('dragend', () => {
-    document.querySelectorAll('.drop-hover').forEach(c => c.classList.remove('drop-hover'));
-  });
-  document.addEventListener('drop', e => {
-    if (!(e.target instanceof Element)) return;
-    const cell = e.target.closest('[data-drop]');
-    if (!cell) return;
-    e.preventDefault();
-    document.querySelectorAll('.drop-hover').forEach(c => c.classList.remove('drop-hover'));
-    const data = e.dataTransfer.getData('text/plain') || '';
-    const to = cell.dataset.drop;
-    const plan = getWeekPlan(currentWeek().key, true);
-    if (data.startsWith('recipe:')) {
-      if (!recipeById(data.slice(7))) return;
-      setMeal(to, data.slice(7));
-    } else if (data.startsWith('slot:')) {
-      const from = data.slice(5);
-      if (from === to || !plan[from]) return;
-      const moved = plan[from], target = plan[to];
-      plan[to] = moved;
-      if (target) plan[from] = target; else delete plan[from];
-      saveState();
-    } else return;
-    render();
-  });
-
-  /* ==========================================================================
-     12. DÉMARRAGE
-     ========================================================================== */
-  render();
-})();
-</script>
-</body>
-</html>
+    R('l5', 'Pâtes Bœuf 5%, Petits Pois & Parmesan', 'lunch', [
+      ['Pâtes', 85, 'g', EP], ['Bœuf haché 5 %', 150, 'g', VP], ['Petits pois', 100, 'g', SU], ['Coulis de tomate (passata)', 100, 'g', EP], ['St Môret', 20, 'g', FR], ['Parmesan', 20, 'g', FR]
+    ]),
+    R('l6', 'Dinde Moutarde-Miel, Ebly & Haricots Verts', 'lunch', [
+      ['Escalope de dinde', 160, 'g', VP], ['Blé (Ebly)', 80, 'g', EP], ['Haricots verts', 150, 'g', FV], ['Moutarde', 1, 'c. à soupe', EP], ['Miel', 1, 'c. à café', EP]
+    ]),
+    R('l7', 'Loaded Fries Pommes de Terre, Bœuf & Cancoillotte', 'lunch', [
+      ['Pommes de terre (en dés)', 280, 'g', FV], ['Bœuf haché 5 %', 150, 'g', VP], ['Maïs', 50, 'g', EP], ['Cancoillotte', 50, 'g', FR]
+    ]),
+    R('l8', 'Poulet Panko-Parmesan, Pâtes & Sauce Ricotta', 'lunch', [
+      ['Blanc de poulet', 160, 'g', VP], ['Chapelure Panko', 20, 'g', EP], ['Parmesan', 20, 'g', FR], ['Pâtes', 80, 'g', EP], ['Coulis de tomate (passata)', 80, 'g', EP], ['Ricotta', 40, 'g', FR], ['Courgette', 50, 'g', FV]
+    ]),
+    R('l9', 'Filet Mignon Barbecue & Purée Patate Douce', 'lunch', [
+      ['Filet mignon de porc', 160, 'g', VP], ['Sauce barbecue', 1, 'c. à soupe', EP], ['Patate douce', 250, 'g', FV], ['Skyr', 40, 'g', FR], ['Petits pois', 80, 'g', SU]
+    ]),
+    R('l10', 'Riz Sauté Poulet, Bacon & Petits Pois', 'lunch', [
+      ['Riz basmati', 85, 'g', EP], ['Blanc de poulet', 130, 'g', VP], ['Bacon maigre', 40, 'g', VP], ['Petits pois', 80, 'g', SU], ['Carottes', 50, 'g', FV], ['Sauce soja', 1, 'c. à soupe', EP]
+    ]),
+    R('l11', 'Mac & Cheese Poulet & Sauce Courgette', 'lunch', [
+      ['Macaronis', 85, 'g', EP], ['Blanc de poulet rôti', 150, 'g', VP], ['Courgette (mixée lisse)', 80, 'g', FV], ['St Môret', 30, 'g', FR], ['Comté', 30, 'g', FR]
+    ]),
+    R('l12', 'Boulettes Bœuf 5% Cœur Mozza & Semoule', 'lunch', [
+      ['Bœuf haché 5 %', 150, 'g', VP], ['Mozzarella', 25, 'g', FR], ['Semoule', 85, 'g', EP], ['Courgette', 150, 'g', FV], ['Coulis de tomate (passata)', 100, 'g', EP]
+    ]),
+    R('l13', 'Salade de Pâtes Poulet, Tomates & Feta', 'lunch', [
+      ['Pâtes (Fusilli)', 85, 'g', EP], ['Blanc de poulet grillé', 150, 'g', VP], ['Tomates cerises', 80, 'g', FV], ['Concombre', 80, 'g', FV], ['Feta', 40, 'g', FR], ['Skyr', 30, 'g', FR], ['Moutarde', 1, 'c. à café', EP]
+    ]),
+    R('l14', 'Filet Mignon Moutarde Ancienne & Riz', 'lunch', [
+      ['Filet mignon de porc', 160, 'g', VP], ['Carottes', 150, 'g', FV], ['Riz basmati', 85, 'g', EP], ['Fromage blanc', 50, 'g', FR], ['Moutarde à l’ancienne', 1, 'c. à soupe', EP]
+    ]),
+    R('l15', 'Gnocchis Carbonara Légère Poulet-Bacon', 'lunch', [
+      ['Gnocchis', 200, 'g', EP], ['Blanc de poulet', 120, 'g', VP], ['Bacon maigre', 50, 'g', VP], ['Petits pois', 60, 'g', SU], ['Skyr', 50, 'g', FR], ['Parmesan', 20, 'g', FR]
+    ]),
+    R('l16', 'Chili sans Cumin Bœuf, Haricots Rouges & Riz', 'lunch', [
+      ['Bœuf haché 5 %', 150, 'g', VP], ['Coulis de tomate (passata)', 100, 'g', EP], ['Haricots rouges', 80, 'g', EP], ['Maïs', 50, 'g', EP], ['Paprika fumé', 1, 'c. à café', EP], ['Riz basmati', 75, 'g', EP]
+    ]),
+    R('l17', 'Dinde Sésame, Nouilles & Haricots Verts', 'lunch', [
+      ['Escalope de dinde', 160, 'g', VP], ['Sauce soja', 1, 'c. à soupe', EP], ['Miel', 1, 'c. à café', EP], ['Graines de sésame', 5, 'g', EP], ['Haricots verts', 150, 'g', FV], ['Nouilles de blé', 85, 'g', EP]
+    ]),
+    R('l18', 'Hachis Parmentier Express Bœuf & Pommes de Terre', 'lunch', [
+      ['Bœuf haché 5 %', 150, 'g', VP], ['Coulis de tomate (passata)', 80, 'g', EP], ['Pommes de terre (écrasé)', 280, 'g', FV], ['Emmental râpé', 30, 'g', FR], ['Mâche', 40, 'g', FV]
+    ]),
+    R('l19', 'Ebly Risotto Poulet, Petits Pois & Parmesan', 'lunch', [
+      ['Blé (Ebly)', 85, 'g', EP], ['Blanc de poulet', 150, 'g', VP], ['Petits pois', 100, 'g', SU], ['Carré frais 0%', 30, 'g', FR], ['Parmesan', 20, 'g', FR]
+    ]),
+    R('l20', 'Burritos Roulés Gratinés Bœuf-Riz-Cheddar', 'lunch', [
+      ['Wraps (tortillas)', 2, 'pièce', BO], ['Bœuf haché 5 %', 140, 'g', VP], ['Riz basmati', 50, 'g', EP], ['Maïs', 40, 'g', EP], ['Cheddar râpé', 35, 'g', FR], ['Skyr', 40, 'g', FR]
+    ]),
+
+    /* ---- PARTIE 3 : 20 REPAS DU SOIR (Air Fryer Post-Sport) ---- */
+    R('d1', 'Poulet Rôti, Patate Douce & Haricots Verts', 'dinner', [
+      ['Blanc de poulet', 160, 'g', VP], ['Patate douce', 200, 'g', FV], ['Haricots verts', 150, 'g', FV], ["Huile d'olive", 1, 'c. à soupe', EP], ['Herbes de Provence', 1, 'c. à café', EP]
+    ]),
+    R('d2', 'Quesadillas Poulet-BBQ & Concombre', 'dinner', [
+      ['Wraps (tortillas)', 2, 'pièce', BO], ['Blanc de poulet', 160, 'g', VP], ['Sauce barbecue', 1, 'c. à soupe', EP], ['Maïs', 50, 'g', EP], ['Mozzarella', 40, 'g', FR], ['Concombre', 100, 'g', FV], ['Skyr', 40, 'g', FR], ['Ail en poudre', 1, 'c. à café', EP]
+    ]),
+    R('d3', 'Dinde Moutarde-Miel, Ebly & Carottes Râpées', 'dinner', [
+      ['Escalope de dinde', 160, 'g', VP], ['Blé (Ebly)', 75, 'g', EP], ['St Môret', 30, 'g', FR], ['Carottes (râpées)', 120, 'g', FV], ['Skyr', 30, 'g', FR], ['Moutarde', 1, 'c. à café', EP]
+    ]),
+    R('d4', 'Poêlée Air Fryer Pdt, Poulet, Bacon & Courgettes', 'dinner', [
+      ['Pommes de terre (en dés)', 280, 'g', FV], ['Blanc de poulet', 130, 'g', VP], ['Bacon maigre', 40, 'g', VP], ['Courgette', 150, 'g', FV], ['Comté', 30, 'g', FR]
+    ]),
+    R('d5', 'Semoule & Poulet Carottes/Courgettes Miel', 'dinner', [
+      ['Semoule', 80, 'g', EP], ['Blanc de poulet', 160, 'g', VP], ['Carottes', 80, 'g', FV], ['Courgette', 70, 'g', FV], ['Miel', 1, 'c. à café', EP], ['Paprika', 1, 'c. à café', EP]
+    ]),
+    R('d6', 'Burger Maison Sèche & Potatoes', 'dinner', [
+      ['Pain burger', 1, 'pièce', BO], ['Steak haché 5 %', 150, 'g', VP], ['Cheddar râpé', 25, 'g', FR], ['Mâche', 30, 'g', FV], ['Pommes de terre (potatoes)', 220, 'g', FV]
+    ]),
+    R('d7', 'Pizza-Tortilla Double Protéine', 'dinner', [
+      ['Wraps (tortillas)', 2, 'pièce', BO], ['Coulis de tomate (passata)', 80, 'g', EP], ['Blanc de poulet', 120, 'g', VP], ['Jambon blanc', 60, 'g', VP], ['Mozzarella', 50, 'g', FR], ['Mâche', 40, 'g', FV]
+    ]),
+    R('d8', 'Rumsteck Beurre d’Ail, Gnocchis & Haricots Verts', 'dinner', [
+      ['Gnocchis', 200, 'g', EP], ['Haricots verts', 150, 'g', FV], ['Rumsteck', 160, 'g', VP], ['Beurre', 10, 'g', FR], ['Ail en poudre', 1, 'c. à café', EP]
+    ]),
+    R('d9', 'Tenders Maison, Riz & Carottes Râpées', 'dinner', [
+      ['Blanc de poulet', 160, 'g', VP], ['Cornflakes (panure)', 30, 'g', EP], ['Riz basmati', 80, 'g', EP], ['Carottes (râpées)', 120, 'g', FV], ['Skyr', 30, 'g', FR], ['Miel', 1, 'c. à café', EP]
+    ]),
+    R('d10', 'Filet Mignon Herbes, Grenailles & Concombre', 'dinner', [
+      ['Filet mignon de porc', 160, 'g', VP], ['Pommes de terre grenailles', 280, 'g', FV], ['Herbes de Provence', 1, 'c. à café', EP], ['Concombre', 100, 'g', FV], ['Skyr', 30, 'g', FR]
+    ]),
+    R('d11', 'Pâtes Gratinées Dinde Tomate-St Môret', 'dinner', [
+      ['Pâtes (Penne)', 85, 'g', EP], ['Escalope de dinde', 150, 'g', VP], ['Coulis de tomate (passata)', 100, 'g', EP], ['St Môret', 35, 'g', FR], ['Mozzarella', 30, 'g', FR]
+    ]),
+    R('d12', 'Brochettes Bœuf Soja-Ail, Semoule & Courgettes', 'dinner', [
+      ['Bœuf (en cubes)', 160, 'g', VP], ['Sauce soja', 1, 'c. à soupe', EP], ['Miel', 1, 'c. à café', EP], ['Ail en poudre', 1, 'c. à café', EP], ['Courgette', 150, 'g', FV],

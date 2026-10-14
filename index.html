@@ -105,9 +105,10 @@
   const UNIT_PLURAL = { 'pièce': 'pièces', 'tranche': 'tranches', 'gousse': 'gousses', 'boîte': 'boîtes', 'sachet': 'sachets' };
 
   /* ==========================================================================
-     2. RECETTES INTÉGRÉES (quantités pour 1 portion)
+     2. RECETTES INTÉGRÉES : livret de 80 recettes (quantités pour 1 portion)
      Format d'un ingrédient : [nom, quantité, unité, rayon]
      ========================================================================== */
+  const RECIPES_VERSION = 2; // à incrémenter quand le livret change : les anciennes recettes intégrées sont alors remplacées
   const FV = 'Fruits & Légumes', VP = 'Viandes & Poissons', FR = 'Frais', BO = 'Boulangerie', EP = 'Épicerie', SU = 'Surgelés';
   const R = (id, title, cat, ings) => ({
     id, title, cat, builtin: true,
@@ -116,84 +117,578 @@
 
   const DEFAULT_RECIPES = [
     /* ---- Petit-déjeuner ---- */
-    R('b1', 'Porridge banane-cannelle', 'breakfast', [
-      ["Flocons d'avoine", 50, 'g', EP], ['Lait demi-écrémé', 250, 'ml', FR], ['Banane', 1, 'pièce', FV],
-      ['Cannelle', 1, 'c. à café', EP], ['Miel', 1, 'c. à café', EP]
+    R('b1', "Bol Petits-Suisses, Avoine & Cacahuète", 'breakfast', [
+      ["Petits-suisses", 200, 'g', FR],
+      ["Flocons d'avoine", 70, 'g', EP],
+      ["Beurre de cacahuète", 15, 'g', EP],
+      ["Banane", 1, 'pièce', FV]
     ]),
-    R('b2', 'Skyr, fruits rouges et granola', 'breakfast', [
-      ['Skyr nature', 150, 'g', FR], ['Fruits rouges surgelés', 100, 'g', SU], ['Granola', 30, 'g', EP], ['Miel', 1, 'c. à café', EP]
+    R('b2', "Baked Oats Choco Air Fryer", 'breakfast', [
+      ["Flocons d'avoine", 60, 'g', EP],
+      ["Compote sans sucre", 100, 'g', EP],
+      ["Œufs", 1, 'pièce', FR],
+      ["Whey chocolat", 25, 'g', EP],
+      ["Levure chimique", 1, 'c. à café', EP],
+      ["Chocolat noir", 15, 'g', EP]
     ]),
-    R('b3', 'Omelette fromage-épinards', 'breakfast', [
-      ['Œufs', 3, 'pièce', FR], ['Épinards frais', 50, 'g', FV], ['Fromage râpé', 30, 'g', FR],
-      ['Beurre', 5, 'g', FR], ['Pain complet', 2, 'tranche', BO]
+    R('b3', "Gâteau Semoule Pomme-Caramel Micro-ondes", 'breakfast', [
+      ["Semoule", 55, 'g', EP],
+      ["Lait demi-écrémé", 220, 'ml', FR],
+      ["Pomme", 1, 'pièce', FV],
+      ["Cannelle", 1, 'c. à café', EP],
+      ["Whey vanille", 30, 'g', EP],
+      ["Caramel", 1, 'c. à café', EP]
     ]),
-    R('b4', 'Tartines avocat-œuf', 'breakfast', [
-      ['Pain complet', 2, 'tranche', BO], ['Avocat', 0.5, 'pièce', FV], ['Œufs', 2, 'pièce', FR], ['Citron jaune', 0.25, 'pièce', FV]
+    R('b4', "Croque Gratiné Jambon-Mozza Air Fryer", 'breakfast', [
+      ["Pain de mie complet", 3, 'tranche', BO],
+      ["Jambon blanc", 3, 'tranche', VP],
+      ["Saint Môret", 30, 'g', FR],
+      ["Mozzarella râpée", 50, 'g', FR],
+      ["Kiwi", 1, 'pièce', FV]
     ]),
-    R('b5', 'Overnight oats cacao-banane', 'breakfast', [
-      ["Flocons d'avoine", 50, 'g', EP], ['Lait demi-écrémé', 150, 'ml', FR], ['Yaourt nature', 100, 'g', FR],
-      ['Cacao en poudre', 1, 'c. à soupe', EP], ['Graines de chia', 1, 'c. à soupe', EP], ['Banane', 1, 'pièce', FV]
+    R('b5', "Overnight Porridge Tiramisu", 'breakfast', [
+      ["Flocons d'avoine", 70, 'g', EP],
+      ["Skyr nature", 200, 'g', FR],
+      ["Whey vanille", 15, 'g', EP],
+      ["Café", 50, 'ml', EP],
+      ["Cacao en poudre", 1, 'c. à café', EP],
+      ["Amandes", 15, 'g', EP]
+    ]),
+    R('b6', "Brioche Perdue Fruits Rouges Air Fryer", 'breakfast', [
+      ["Pain de mie complet", 3, 'tranche', BO],
+      ["Œufs", 1, 'pièce', FR],
+      ["Lait demi-écrémé", 80, 'ml', FR],
+      ["Whey", 20, 'g', EP],
+      ["Cannelle", 1, 'c. à café', EP],
+      ["Skyr nature", 100, 'g', FR],
+      ["Fruits rouges surgelés", 100, 'g', SU]
+    ]),
+    R('b7', "Wrap Chaud Banane-Choco-Cacahuète Air Fryer", 'breakfast', [
+      ["Wraps (tortillas)", 1, 'pièce', BO],
+      ["Beurre de cacahuète", 15, 'g', EP],
+      ["Banane", 1, 'pièce', FV],
+      ["Chocolat noir", 15, 'g', EP],
+      ["Skyr nature", 100, 'g', FR]
+    ]),
+    R('b8', "Bowl Cheesecake Spéculoos", 'breakfast', [
+      ["Fromage blanc", 200, 'g', FR],
+      ["Carré frais 0 %", 100, 'g', FR],
+      ["Whey vanille", 20, 'g', EP],
+      ["Fruits rouges surgelés", 100, 'g', SU],
+      ["Flocons d'avoine", 20, 'g', EP],
+      ["Spéculoos", 2, 'pièce', EP]
+    ]),
+    R('b9', "Flan Pâtissier Vanille Air Fryer", 'breakfast', [
+      ["Maïzena", 40, 'g', EP],
+      ["Farine d'avoine", 30, 'g', EP],
+      ["Lait demi-écrémé", 250, 'ml', FR],
+      ["Œufs", 1, 'pièce', FR],
+      ["Whey vanille", 25, 'g', EP]
+    ]),
+    R('b10', "Bagel Dinde & Comté Air Fryer", 'breakfast', [
+      ["Bagel", 1, 'pièce', BO],
+      ["Saint Môret", 40, 'g', FR],
+      ["Dinde (tranches)", 3, 'tranche', VP],
+      ["Comté", 30, 'g', FR],
+      ["Pomme", 1, 'pièce', FV]
+    ]),
+    R('b11', "Porridge Snickers Micro-ondes", 'breakfast', [
+      ["Flocons d'avoine", 70, 'g', EP],
+      ["Lait demi-écrémé", 200, 'ml', FR],
+      ["Whey chocolat", 30, 'g', EP],
+      ["Beurre de cacahuète", 15, 'g', EP],
+      ["Cacahuètes", 10, 'g', EP]
+    ]),
+    R('b12', "Pancakes Banane-Avoine Blender", 'breakfast', [
+      ["Flocons d'avoine", 70, 'g', EP],
+      ["Banane", 1, 'pièce', FV],
+      ["Œufs", 1, 'pièce', FR],
+      ["Whey", 20, 'g', EP],
+      ["Lait demi-écrémé", 50, 'ml', FR],
+      ["Miel", 10, 'g', EP]
+    ]),
+    R('b13', "Crumble Pomme-Amandes Air Fryer", 'breakfast', [
+      ["Pomme", 1, 'pièce', FV],
+      ["Cannelle", 1, 'c. à café', EP],
+      ["Flocons d'avoine", 60, 'g', EP],
+      ["Purée d'amandes", 15, 'g', EP],
+      ["Miel", 10, 'g', EP],
+      ["Skyr nature", 100, 'g', FR]
+    ]),
+    R('b14', "Riz au Lait Protéiné", 'breakfast', [
+      ["Riz rond", 60, 'g', EP],
+      ["Lait demi-écrémé", 250, 'ml', FR],
+      ["Petits-suisses", 150, 'g', FR],
+      ["Whey vanille", 20, 'g', EP],
+      ["Caramel", 1, 'c. à café', EP]
+    ]),
+    R('b15', "Wrap Salé Bacon, Chèvre & Miel Air Fryer", 'breakfast', [
+      ["Wraps (tortillas)", 1, 'pièce', BO],
+      ["Bacon maigre", 80, 'g', VP],
+      ["Fromage de chèvre", 40, 'g', FR],
+      ["Miel", 1, 'c. à café', EP],
+      ["Skyr nature", 100, 'g', FR]
+    ]),
+    R('b16', "Moelleux Courgette Invisible Air Fryer", 'breakfast', [
+      ["Farine d'avoine", 55, 'g', EP],
+      ["Courgette", 80, 'g', FV],
+      ["Œufs", 1, 'pièce', FR],
+      ["Whey chocolat", 30, 'g', EP],
+      ["Cacao en poudre", 1, 'c. à café', EP],
+      ["Chocolat noir", 15, 'g', EP]
+    ]),
+    R('b17', "Granola Minute Air Fryer & Agrumes", 'breakfast', [
+      ["Flocons d'avoine", 65, 'g', EP],
+      ["Amandes", 15, 'g', EP],
+      ["Miel", 10, 'g', EP],
+      ["Petits-suisses", 250, 'g', FR],
+      ["Clémentines", 2, 'pièce', FV]
+    ]),
+    R('b18', "Muffins Salés Jambon-Comté Air Fryer", 'breakfast', [
+      ["Flocons d'avoine", 60, 'g', EP],
+      ["Œufs", 1, 'pièce', FR],
+      ["Fromage blanc", 100, 'g', FR],
+      ["Levure chimique", 1, 'c. à café', EP],
+      ["Jambon blanc", 80, 'g', VP],
+      ["Comté", 35, 'g', FR]
+    ]),
+    R('b19', "Chia-Pudding Choco-Banane", 'breakfast', [
+      ["Flocons d'avoine", 50, 'g', EP],
+      ["Graines de chia", 15, 'g', EP],
+      ["Lait demi-écrémé", 220, 'ml', FR],
+      ["Whey chocolat", 30, 'g', EP],
+      ["Banane", 1, 'pièce', FV],
+      ["Purée de noisette", 10, 'g', EP]
+    ]),
+    R('b20', "Tartines Ricotta-Miel-Noix & Shaker", 'breakfast', [
+      ["Pain complet", 3, 'tranche', BO],
+      ["Ricotta", 60, 'g', FR],
+      ["Noix", 15, 'g', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Whey", 30, 'g', EP]
     ]),
 
-    /* ---- Déjeuner ---- */
-    R('l1', 'Bowl poulet, riz et brocoli', 'lunch', [
-      ['Blanc de poulet', 150, 'g', VP], ['Riz basmati', 80, 'g', EP], ['Brocoli', 150, 'g', FV],
-      ['Sauce soja', 1, 'c. à soupe', EP], ["Huile d'olive", 1, 'c. à soupe', EP]
+    /* ---- Déjeuner (meal prep, doses pour 1 boîte) ---- */
+    R('l1', "Poulet Cornflakes, Grenailles & Haricots Verts", 'lunch', [
+      ["Blanc de poulet", 160, 'g', VP],
+      ["Cornflakes", 20, 'g', EP],
+      ["Pommes de terre grenailles", 250, 'g', FV],
+      ["Haricots verts", 150, 'g', FV]
     ]),
-    R('l2', 'Salade de quinoa, pois chiches et feta', 'lunch', [
-      ['Quinoa', 70, 'g', EP], ['Pois chiches', 0.5, 'boîte', EP], ['Concombre', 0.5, 'pièce', FV],
-      ['Tomates', 2, 'pièce', FV], ['Feta', 50, 'g', FR], ["Huile d'olive", 1, 'c. à soupe', EP]
+    R('l2', "Bœuf Teriyaki, Riz & Carottes Miel", 'lunch', [
+      ["Boulettes de bœuf 5 %", 150, 'g', VP],
+      ["Riz basmati", 85, 'g', EP],
+      ["Carottes", 150, 'g', FV],
+      ["Sauce soja", 1, 'c. à soupe', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Maïzena", 1, 'c. à café', EP]
     ]),
-    R('l3', 'Wrap thon et crudités', 'lunch', [
-      ['Wraps (tortillas)', 2, 'pièce', BO], ['Thon au naturel', 1, 'boîte', EP], ['Laitue', 40, 'g', FV],
-      ['Tomates', 1, 'pièce', FV], ['Fromage frais', 30, 'g', FR]
+    R('l3', "Gnocchis Rôtis, Filet Mignon & Sauce Tomate-Courgette", 'lunch', [
+      ["Gnocchis", 200, 'g', EP],
+      ["Filet mignon de porc", 160, 'g', VP],
+      ["Courgette", 100, 'g', FV],
+      ["Passata", 100, 'g', EP],
+      ["Saint Môret", 30, 'g', FR],
+      ["Mozzarella râpée", 30, 'g', FR]
     ]),
-    R('l4', 'Chili con carne', 'lunch', [
-      ['Bœuf haché 5 %', 150, 'g', VP], ['Haricots rouges', 0.5, 'boîte', EP], ['Tomates concassées', 200, 'g', EP],
-      ['Oignon', 0.5, 'pièce', FV], ['Poivron rouge', 0.5, 'pièce', FV], ['Riz basmati', 70, 'g', EP], ['Paprika', 1, 'c. à café', EP]
+    R('l4', "Burrito Bowl Fumé sans Cumin", 'lunch', [
+      ["Blanc de poulet", 160, 'g', VP],
+      ["Riz basmati", 75, 'g', EP],
+      ["Maïs", 70, 'g', EP],
+      ["Haricots rouges", 70, 'g', EP],
+      ["Cheddar", 20, 'g', FR],
+      ["Skyr nature", 40, 'g', FR],
+      ["Paprika fumé", 1, 'c. à café', EP]
     ]),
-    R('l5', 'Dahl de lentilles corail et carottes', 'lunch', [
-      ['Lentilles corail', 80, 'g', EP], ['Carottes', 2, 'pièce', FV], ['Oignon', 0.5, 'pièce', FV],
-      ['Lait de coco', 100, 'ml', EP], ['Curry en poudre', 1, 'c. à café', EP]
+    R('l5', "Pâtes Bœuf 5%, Petits Pois & Parmesan", 'lunch', [
+      ["Pâtes", 85, 'g', EP],
+      ["Bœuf haché 5 %", 150, 'g', VP],
+      ["Petits pois", 100, 'g', SU],
+      ["Passata", 100, 'g', EP],
+      ["Saint Môret", 30, 'g', FR],
+      ["Parmesan", 15, 'g', FR]
+    ]),
+    R('l6', "Dinde Moutarde-Miel, Ebly & Haricots Verts", 'lunch', [
+      ["Escalope de dinde", 160, 'g', VP],
+      ["Ebly", 80, 'g', EP],
+      ["Haricots verts", 150, 'g', FV],
+      ["Moutarde", 1, 'c. à soupe', EP],
+      ["Miel", 1, 'c. à café', EP]
+    ]),
+    R('l7', "Loaded Fries Pommes de Terre, Bœuf & Cancoillotte", 'lunch', [
+      ["Pommes de terre", 280, 'g', FV],
+      ["Bœuf haché 5 %", 150, 'g', VP],
+      ["Maïs", 50, 'g', EP],
+      ["Cancoillotte", 40, 'g', FR]
+    ]),
+    R('l8', "Poulet Panko-Parmesan, Pâtes & Sauce Ricotta", 'lunch', [
+      ["Blanc de poulet", 160, 'g', VP],
+      ["Chapelure panko", 20, 'g', EP],
+      ["Parmesan", 15, 'g', FR],
+      ["Pâtes", 80, 'g', EP],
+      ["Coulis de tomate", 100, 'g', EP],
+      ["Ricotta", 40, 'g', FR],
+      ["Courgette", 100, 'g', FV]
+    ]),
+    R('l9', "Filet Mignon Barbecue & Purée Patate Douce", 'lunch', [
+      ["Filet mignon de porc", 160, 'g', VP],
+      ["Sauce barbecue", 1, 'c. à soupe', EP],
+      ["Patate douce", 250, 'g', FV],
+      ["Skyr nature", 40, 'g', FR],
+      ["Petits pois", 100, 'g', SU]
+    ]),
+    R('l10', "Riz Sauté Poulet, Bacon & Petits Pois", 'lunch', [
+      ["Riz basmati", 85, 'g', EP],
+      ["Blanc de poulet", 130, 'g', VP],
+      ["Bacon maigre", 40, 'g', VP],
+      ["Petits pois et carottes", 130, 'g', SU],
+      ["Sauce soja", 1, 'c. à soupe', EP]
+    ]),
+    R('l11', "Mac & Cheese Poulet & Sauce Courgette", 'lunch', [
+      ["Macaronis", 85, 'g', EP],
+      ["Blanc de poulet", 150, 'g', VP],
+      ["Courgette", 100, 'g', FV],
+      ["Saint Môret", 30, 'g', FR],
+      ["Comté", 25, 'g', FR]
+    ]),
+    R('l12', "Boulettes Bœuf 5% Cœur Mozza & Semoule", 'lunch', [
+      ["Boulettes de bœuf 5 %", 150, 'g', VP],
+      ["Mozzarella", 30, 'g', FR],
+      ["Semoule", 85, 'g', EP],
+      ["Courgette", 150, 'g', FV],
+      ["Coulis de tomate", 100, 'g', EP]
+    ]),
+    R('l13', "Salade de Pâtes Poulet, Tomates & Feta", 'lunch', [
+      ["Fusilli", 85, 'g', EP],
+      ["Blanc de poulet", 150, 'g', VP],
+      ["Tomates cerises", 100, 'g', FV],
+      ["Concombre", 0.5, 'pièce', FV],
+      ["Feta", 30, 'g', FR],
+      ["Skyr nature", 50, 'g', FR],
+      ["Moutarde", 1, 'c. à café', EP]
+    ]),
+    R('l14', "Filet Mignon Moutarde Ancienne & Riz", 'lunch', [
+      ["Filet mignon de porc", 160, 'g', VP],
+      ["Carottes", 150, 'g', FV],
+      ["Riz basmati", 85, 'g', EP],
+      ["Fromage blanc", 80, 'g', FR],
+      ["Moutarde à l'ancienne", 1, 'c. à soupe', EP]
+    ]),
+    R('l15', "Gnocchis Carbonara Légère Poulet-Bacon", 'lunch', [
+      ["Gnocchis", 200, 'g', EP],
+      ["Blanc de poulet", 120, 'g', VP],
+      ["Bacon maigre", 50, 'g', VP],
+      ["Petits pois", 80, 'g', SU],
+      ["Skyr nature", 60, 'g', FR],
+      ["Parmesan", 15, 'g', FR]
+    ]),
+    R('l16', "Chili sans Cumin Bœuf, Haricots Rouges & Riz", 'lunch', [
+      ["Bœuf haché 5 %", 150, 'g', VP],
+      ["Coulis de tomate", 150, 'g', EP],
+      ["Haricots rouges", 70, 'g', EP],
+      ["Maïs", 50, 'g', EP],
+      ["Paprika fumé", 1, 'c. à café', EP],
+      ["Riz basmati", 75, 'g', EP]
+    ]),
+    R('l17', "Dinde Sésame, Nouilles & Haricots Verts", 'lunch', [
+      ["Escalope de dinde", 160, 'g', VP],
+      ["Sauce soja", 1, 'c. à soupe', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Graines de sésame", 1, 'c. à café', EP],
+      ["Haricots verts", 150, 'g', FV],
+      ["Nouilles de blé", 85, 'g', EP]
+    ]),
+    R('l18', "Hachis Parmentier Express Bœuf & Pommes de Terre", 'lunch', [
+      ["Bœuf haché 5 %", 150, 'g', VP],
+      ["Coulis de tomate", 100, 'g', EP],
+      ["Pommes de terre", 280, 'g', FV],
+      ["Emmental râpé", 25, 'g', FR],
+      ["Mâche", 40, 'g', FV]
+    ]),
+    R('l19', "Ebly Risotto Poulet, Petits Pois & Parmesan", 'lunch', [
+      ["Ebly", 85, 'g', EP],
+      ["Blanc de poulet", 150, 'g', VP],
+      ["Petits pois", 100, 'g', SU],
+      ["Carré frais", 30, 'g', FR],
+      ["Parmesan", 15, 'g', FR]
+    ]),
+    R('l20', "Burritos Roulés Gratinés Bœuf-Riz-Cheddar", 'lunch', [
+      ["Wraps (tortillas)", 2, 'pièce', BO],
+      ["Bœuf haché 5 %", 140, 'g', VP],
+      ["Riz basmati", 50, 'g', EP],
+      ["Maïs", 40, 'g', EP],
+      ["Cheddar", 25, 'g', FR],
+      ["Skyr nature", 40, 'g', FR]
     ]),
 
-    /* ---- Dîner ---- */
-    R('d1', 'Saumon, patate douce et haricots verts', 'dinner', [
-      ['Pavé de saumon', 150, 'g', VP], ['Patate douce', 200, 'g', FV], ['Haricots verts', 150, 'g', FV],
-      ["Huile d'olive", 1, 'c. à soupe', EP], ['Citron jaune', 0.25, 'pièce', FV]
+    /* ---- Dîner (Air Fryer post-sport) ---- */
+    R('d1', "Frites Patate Douce, Bavette & Mâche", 'dinner', [
+      ["Patate douce", 280, 'g', FV],
+      ["Bavette", 160, 'g', VP],
+      ["Mâche", 40, 'g', FV],
+      ["Tomates", 1, 'pièce', FV]
     ]),
-    R('d2', 'Pâtes complètes à la bolognaise', 'dinner', [
-      ['Pâtes complètes', 90, 'g', EP], ['Bœuf haché 5 %', 120, 'g', VP], ['Tomates concassées', 200, 'g', EP],
-      ['Oignon', 0.5, 'pièce', FV], ['Carottes', 1, 'pièce', FV], ['Ail', 1, 'gousse', FV]
+    R('d2', "Quesadillas Poulet-BBQ & Concombre", 'dinner', [
+      ["Wraps (tortillas)", 2, 'pièce', BO],
+      ["Blanc de poulet", 160, 'g', VP],
+      ["Sauce barbecue", 1, 'c. à soupe', EP],
+      ["Maïs", 50, 'g', EP],
+      ["Mozzarella râpée", 30, 'g', FR],
+      ["Concombre", 0.5, 'pièce', FV],
+      ["Skyr nature", 50, 'g', FR],
+      ["Ail en poudre", 1, 'c. à café', EP]
     ]),
-    R('d3', 'Curry de pois chiches et épinards', 'dinner', [
-      ['Pois chiches', 1, 'boîte', EP], ['Épinards frais', 100, 'g', FV], ['Lait de coco', 150, 'ml', EP],
-      ['Oignon', 1, 'pièce', FV], ['Ail', 2, 'gousse', FV], ['Curry en poudre', 1, 'c. à soupe', EP], ['Riz basmati', 70, 'g', EP]
+    R('d3', "Dinde Moutarde-Miel, Ebly & Carottes Râpées", 'dinner', [
+      ["Escalope de dinde", 160, 'g', VP],
+      ["Moutarde", 1, 'c. à soupe', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Ebly", 75, 'g', EP],
+      ["Saint Môret", 30, 'g', FR],
+      ["Carottes", 150, 'g', FV],
+      ["Skyr nature", 40, 'g', FR]
     ]),
-    R('d4', 'Cuisses de poulet et légumes rôtis', 'dinner', [
-      ['Cuisses de poulet', 2, 'pièce', VP], ['Pommes de terre', 250, 'g', FV], ['Carottes', 2, 'pièce', FV],
-      ['Courgette', 1, 'pièce', FV], ["Huile d'olive", 1, 'c. à soupe', EP], ['Herbes de Provence', 1, 'c. à café', EP]
+    R('d4', "Poêlée Air Fryer Pdt, Poulet, Bacon & Courgettes", 'dinner', [
+      ["Pommes de terre", 280, 'g', FV],
+      ["Blanc de poulet", 130, 'g', VP],
+      ["Bacon maigre", 40, 'g', VP],
+      ["Courgette", 150, 'g', FV],
+      ["Comté", 25, 'g', FR]
     ]),
-    R('d5', 'Soupe de légumes et tartines de chèvre', 'dinner', [
-      ['Carottes', 2, 'pièce', FV], ['Poireau', 1, 'pièce', FV], ['Pommes de terre', 150, 'g', FV],
-      ['Bouillon de légumes (cube)', 1, 'pièce', EP], ['Pain complet', 2, 'tranche', BO], ['Fromage de chèvre', 40, 'g', FR]
+    R('d5', "Semoule & Poulet Carottes/Courgettes Miel", 'dinner', [
+      ["Semoule", 80, 'g', EP],
+      ["Blanc de poulet", 160, 'g', VP],
+      ["Carottes", 75, 'g', FV],
+      ["Courgette", 75, 'g', FV],
+      ["Miel", 1, 'c. à café', EP],
+      ["Paprika", 1, 'c. à café', EP]
+    ]),
+    R('d6', "Burger Maison Sèche & Potatoes", 'dinner', [
+      ["Pain burger", 1, 'pièce', BO],
+      ["Steak haché 5 %", 150, 'g', VP],
+      ["Cheddar", 1, 'tranche', FR],
+      ["Mâche", 30, 'g', FV],
+      ["Pommes de terre", 220, 'g', FV]
+    ]),
+    R('d7', "Pizza-Tortilla Double Protéine", 'dinner', [
+      ["Wraps (tortillas)", 2, 'pièce', BO],
+      ["Coulis de tomate", 80, 'g', EP],
+      ["Blanc de poulet", 120, 'g', VP],
+      ["Jambon blanc", 2, 'tranche', VP],
+      ["Mozzarella râpée", 50, 'g', FR],
+      ["Mâche", 40, 'g', FV]
+    ]),
+    R('d8', "Rumsteck Beurre d'Ail, Gnocchis & Haricots Verts", 'dinner', [
+      ["Gnocchis", 200, 'g', EP],
+      ["Haricots verts", 150, 'g', FV],
+      ["Rumsteck", 160, 'g', VP],
+      ["Beurre", 10, 'g', FR],
+      ["Ail en poudre", 1, 'c. à café', EP]
+    ]),
+    R('d9', "Tenders Maison, Riz & Carottes Râpées", 'dinner', [
+      ["Blanc de poulet", 160, 'g', VP],
+      ["Cornflakes", 20, 'g', EP],
+      ["Riz basmati", 80, 'g', EP],
+      ["Carottes", 150, 'g', FV],
+      ["Skyr nature", 40, 'g', FR],
+      ["Miel", 1, 'c. à café', EP]
+    ]),
+    R('d10', "Filet Mignon Herbes, Grenailles & Concombre", 'dinner', [
+      ["Filet mignon de porc", 160, 'g', VP],
+      ["Pommes de terre grenailles", 280, 'g', FV],
+      ["Herbes de Provence", 1, 'c. à café', EP],
+      ["Concombre", 0.5, 'pièce', FV],
+      ["Skyr nature", 50, 'g', FR]
+    ]),
+    R('d11', "Pâtes Gratinées Dinde Tomate-St Môret", 'dinner', [
+      ["Penne", 85, 'g', EP],
+      ["Escalope de dinde", 150, 'g', VP],
+      ["Passata", 100, 'g', EP],
+      ["Saint Môret", 30, 'g', FR],
+      ["Mozzarella râpée", 30, 'g', FR]
+    ]),
+    R('d12', "Brochettes Bœuf Soja-Ail, Semoule & Courgettes", 'dinner', [
+      ["Bœuf (cubes)", 160, 'g', VP],
+      ["Sauce soja", 1, 'c. à soupe', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Ail en poudre", 1, 'c. à café', EP],
+      ["Courgette", 150, 'g', FV],
+      ["Semoule", 80, 'g', EP]
+    ]),
+    R('d13', "Croque-Cake Courgette, Jambon & Comté", 'dinner', [
+      ["Pain de mie complet", 3, 'tranche', BO],
+      ["Jambon blanc", 150, 'g', VP],
+      ["Courgette", 100, 'g', FV],
+      ["Skyr nature", 40, 'g', FR],
+      ["Comté", 30, 'g', FR]
+    ]),
+    R('d14', "Poulet Cordon Bleu Maison & Purée", 'dinner', [
+      ["Blanc de poulet", 150, 'g', VP],
+      ["Jambon blanc", 2, 'tranche', VP],
+      ["Comté", 20, 'g', FR],
+      ["Chapelure", 15, 'g', EP],
+      ["Pommes de terre", 280, 'g', FV],
+      ["Mâche", 40, 'g', FV]
+    ]),
+    R('d15', "Bowl Patate Douce, Bœuf Paprika & Maïs", 'dinner', [
+      ["Patate douce", 260, 'g', FV],
+      ["Bœuf haché 5 %", 150, 'g', VP],
+      ["Paprika fumé", 1, 'c. à café', EP],
+      ["Maïs", 50, 'g', EP],
+      ["Fromage blanc", 50, 'g', FR],
+      ["Fromage râpé", 20, 'g', FR]
+    ]),
+    R('d16', "Escalope de Dinde Parmigiana & Spaghettis", 'dinner', [
+      ["Escalope de dinde", 160, 'g', VP],
+      ["Coulis de tomate", 100, 'g', EP],
+      ["Origan", 1, 'c. à café', EP],
+      ["Mozzarella râpée", 40, 'g', FR],
+      ["Spaghettis", 80, 'g', EP]
+    ]),
+    R('d17', "Riz Sauté Poulet, Jambon & Petits Pois", 'dinner', [
+      ["Riz basmati", 85, 'g', EP],
+      ["Blanc de poulet", 120, 'g', VP],
+      ["Jambon blanc", 50, 'g', VP],
+      ["Petits pois", 100, 'g', SU],
+      ["Sauce soja", 1, 'c. à soupe', EP]
+    ]),
+    R('d18', "Bavette Sauce Échalote & Frites Maison", 'dinner', [
+      ["Pommes de terre", 280, 'g', FV],
+      ["Bavette", 160, 'g', VP],
+      ["Fromage blanc", 60, 'g', FR],
+      ["Oignon en poudre", 1, 'c. à café', EP],
+      ["Miel", 1, 'c. à café', EP]
+    ]),
+    R('d19', "Wrap Kebab Maison Poulet Paprika & Frites", 'dinner', [
+      ["Wraps (tortillas)", 1, 'pièce', BO],
+      ["Blanc de poulet", 150, 'g', VP],
+      ["Paprika", 1, 'c. à café', EP],
+      ["Origan", 1, 'c. à café', EP],
+      ["Skyr nature", 60, 'g', FR],
+      ["Pommes de terre", 200, 'g', FV]
+    ]),
+    R('d20', "Filet Mignon Miel-Provence, Gnocchis & Betterave", 'dinner', [
+      ["Filet mignon de porc", 160, 'g', VP],
+      ["Gnocchis", 200, 'g', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Herbes de Provence", 1, 'c. à café', EP],
+      ["Mâche", 40, 'g', FV],
+      ["Betterave cuite", 80, 'g', FV]
     ]),
 
     /* ---- Collations faim dans la nuit ---- */
-    R('n1', 'Yaourt grec, miel et noix', 'night', [
-      ['Yaourt grec', 150, 'g', FR], ['Miel', 1, 'c. à café', EP], ['Noix', 15, 'g', EP]
+    R('n1', "Petits-suisses, chia & cacahuète", 'night', [
+      ["Petits-suisses", 150, 'g', FR],
+      ["Graines de chia", 1, 'c. à café', EP],
+      ["Beurre de cacahuète", 12, 'g', EP]
     ]),
-    R('n2', 'Toast beurre de cacahuète et banane', 'night', [
-      ['Pain complet', 1, 'tranche', BO], ['Beurre de cacahuète', 1, 'c. à soupe', EP], ['Banane', 0.5, 'pièce', FV]
+    R('n2', "Flan choco agar-agar", 'night', [
+      ["Lait demi-écrémé", 250, 'ml', FR],
+      ["Agar-agar", 1, 'g', EP],
+      ["Whey chocolat", 30, 'g', EP]
     ]),
-    R('n3', 'Fromage blanc, pomme et amandes', 'night', [
-      ['Fromage blanc', 150, 'g', FR], ['Pomme', 1, 'pièce', FV], ['Amandes', 10, 'g', EP]
+    R('n3', "Roulés dinde", 'night', [
+      ["Dinde (tranches)", 3, 'tranche', VP],
+      ["Saint Môret", 30, 'g', FR],
+      ["Pain de mie complet", 1, 'tranche', BO]
     ]),
-    R('n4', 'Œufs durs et galettes de riz', 'night', [
-      ['Œufs', 2, 'pièce', FR], ['Galettes de riz', 2, 'pièce', EP]
+    R('n4', "Mousse choco skyr", 'night', [
+      ["Skyr nature", 200, 'g', FR],
+      ["Whey chocolat", 15, 'g', EP],
+      ["Cacao en poudre", 1, 'c. à café', EP],
+      ["Chocolat noir", 10, 'g', EP]
     ]),
-    R('n5', 'Houmous et bâtonnets de légumes', 'night', [
-      ['Houmous', 60, 'g', FR], ['Carottes', 1, 'pièce', FV], ['Concombre', 0.25, 'pièce', FV]
+    R('n5', "Mugcake choco avoine sans œuf", 'night', [
+      ["Flocons d'avoine", 30, 'g', EP],
+      ["Banane", 0.5, 'pièce', FV],
+      ["Whey", 20, 'g', EP],
+      ["Lait demi-écrémé", 100, 'ml', FR],
+      ["Levure chimique", 0.5, 'c. à café', EP]
+    ]),
+    R('n6', "Tartine carré frais & comté", 'night', [
+      ["Pain complet", 1, 'tranche', BO],
+      ["Carré frais", 2, 'pièce', FR],
+      ["Comté", 20, 'g', FR],
+      ["Ail en poudre", 1, 'c. à café', EP]
+    ]),
+    R('n7', "Overnight pomme-cannelle", 'night', [
+      ["Flocons d'avoine", 30, 'g', EP],
+      ["Fromage blanc", 150, 'g', FR],
+      ["Cannelle", 1, 'c. à café', EP],
+      ["Pomme", 0.5, 'pièce', FV]
+    ]),
+    R('n8', "Flan vanille-caramel agar-agar", 'night', [
+      ["Lait demi-écrémé", 250, 'ml', FR],
+      ["Agar-agar", 1, 'g', EP],
+      ["Whey vanille", 25, 'g', EP],
+      ["Caramel", 1, 'c. à café', EP]
+    ]),
+    R('n9', "Gelée clémentine skyr", 'night', [
+      ["Jus de clémentine", 150, 'ml', FR],
+      ["Agar-agar", 1, 'g', EP],
+      ["Petits-suisses", 150, 'g', FR],
+      ["Amandes", 10, 'g', EP]
+    ]),
+    R('n10', "Barre maison avoine-cacahuète", 'night', [
+      ["Flocons d'avoine", 30, 'g', EP],
+      ["Beurre de cacahuète", 12, 'g', EP],
+      ["Whey", 15, 'g', EP],
+      ["Miel", 1, 'c. à café', EP],
+      ["Lait demi-écrémé", 50, 'ml', FR]
+    ]),
+    R('n11', "Roulés jambon-comté", 'night', [
+      ["Jambon blanc", 2, 'tranche', VP],
+      ["Comté", 25, 'g', FR],
+      ["Pain de mie complet", 1, 'tranche', BO]
+    ]),
+    R('n12', "Crème dessert choco-cacahuète", 'night', [
+      ["Petits-suisses", 150, 'g', FR],
+      ["Whey chocolat", 15, 'g', EP],
+      ["Beurre de cacahuète", 10, 'g', EP]
+    ]),
+    R('n13', "Bowl fromage blanc, compote & amandes", 'night', [
+      ["Skyr nature", 200, 'g', FR],
+      ["Compote sans sucre", 100, 'g', EP],
+      ["Amandes", 12, 'g', EP]
+    ]),
+    R('n14', "Demi-wrap chaud dinde-mozza", 'night', [
+      ["Petit wrap", 1, 'pièce', BO],
+      ["Dinde (tranches)", 2, 'tranche', VP],
+      ["Mozzarella râpée", 20, 'g', FR],
+      ["Coulis de tomate", 30, 'g', EP]
+    ]),
+    R('n15', "Shaker nuit calme", 'night', [
+      ["Lait demi-écrémé", 200, 'ml', FR],
+      ["Whey vanille", 25, 'g', EP],
+      ["Cannelle", 1, 'c. à café', EP],
+      ["Chocolat noir", 10, 'g', EP]
+    ]),
+    R('n16', "Petits-suisses coulis fruits rouges tièdes & chia", 'night', [
+      ["Petits-suisses", 120, 'g', FR],
+      ["Fruits rouges surgelés", 80, 'g', SU],
+      ["Graines de chia", 1, 'c. à café', EP],
+      ["Miel", 1, 'c. à café', EP]
+    ]),
+    R('n17', "Tartine beurre cacahuète & skyr", 'night', [
+      ["Pain complet", 1, 'tranche', BO],
+      ["Beurre de cacahuète", 12, 'g', EP],
+      ["Skyr nature", 150, 'g', FR]
+    ]),
+    R('n18', "Mugcake fondant choco sans œuf", 'night', [
+      ["Farine d'avoine", 25, 'g', EP],
+      ["Whey chocolat", 20, 'g', EP],
+      ["Cacao en poudre", 1, 'c. à café', EP],
+      ["Compote sans sucre", 40, 'g', EP],
+      ["Lait demi-écrémé", 60, 'ml', FR]
+    ]),
+    R('n19', "Assiette poulet rôti, chèvre frais & galettes de riz", 'night', [
+      ["Dinde (tranches)", 2, 'tranche', VP],
+      ["Chèvre frais", 30, 'g', FR],
+      ["Galettes de riz", 2, 'pièce', EP]
+    ]),
+    R('n20', "Bowl skyr stracciatella", 'night', [
+      ["Skyr nature", 200, 'g', FR],
+      ["Banane", 0.5, 'pièce', FV],
+      ["Chocolat noir (copeaux)", 12, 'g', EP]
     ])
   ];
 
@@ -203,7 +698,7 @@
   const clone = o => JSON.parse(JSON.stringify(o));
 
   function defaultState() {
-    return { recipes: clone(DEFAULT_RECIPES), plan: {}, checked: {} };
+    return { recipes: clone(DEFAULT_RECIPES), plan: {}, checked: {}, recipesVersion: RECIPES_VERSION };
   }
 
   function loadState() {
@@ -211,10 +706,16 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const s = JSON.parse(raw);
+        const stored = Array.isArray(s.recipes) ? s.recipes : [];
+        // Livret mis à jour : on remplace les recettes intégrées et on garde seulement celles créées par l'utilisateur
+        const recipes = s.recipesVersion === RECIPES_VERSION
+          ? (stored.length ? stored : clone(DEFAULT_RECIPES))
+          : [...clone(DEFAULT_RECIPES), ...stored.filter(r => !r.builtin)];
         return {
-          recipes: Array.isArray(s.recipes) && s.recipes.length ? s.recipes : clone(DEFAULT_RECIPES),
+          recipes,
           plan: s.plan && typeof s.plan === 'object' ? s.plan : {},
-          checked: s.checked && typeof s.checked === 'object' ? s.checked : {}
+          checked: s.checked && typeof s.checked === 'object' ? s.checked : {},
+          recipesVersion: RECIPES_VERSION
         };
       }
     } catch (e) { /* données corrompues ou stockage bloqué : on repart de zéro */ }
